@@ -63,7 +63,7 @@ if __name__ == '__main__':
 
     say_stuff("Hey, I am Miss Fritters! What would you like to ask?")
 
-    while (True):
+    while True:
         prompt = hear_stuff()
         response = ask_stuff(prompt)
         say_stuff(response)
