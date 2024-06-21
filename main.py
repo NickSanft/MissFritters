@@ -3,15 +3,14 @@ import pyttsx3
 import requests
 import speech_recognition as sr
 
+from config import Config
+
+config = Config()
+
 engine = pyttsx3.init()
 engine.setProperty('voice', "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\TTS_MS_EN-US_ZIRA_11.0")
 
 r = sr.Recognizer()
-
-device_no = 2
-llama_url = 'http://localhost:11434/api/generate'
-llama_model = "llama3"
-
 
 def say_stuff(message: str):
     print("Message to say: {}".format(message))
@@ -20,7 +19,7 @@ def say_stuff(message: str):
 
 
 def hear_stuff():
-    with sr.Microphone(device_index=device_no) as source:
+    with sr.Microphone(device_index=config.get_config("microphone_device_no")) as source:
         r.adjust_for_ambient_noise(source, duration=1)
         print("SPEAK")
         audio = r.listen(source)
@@ -33,9 +32,9 @@ def hear_stuff():
 
 
 def ask_stuff(prompt_to_ask: str):
-    json_obj = {'model': llama_model, 'prompt': prompt_to_ask}
+    json_obj = {'model': config.get_config("llama_model"), 'prompt': prompt_to_ask}
     print("Prompt to ask: " + prompt_to_ask)
-    x = requests.post(llama_url, json=json_obj)
+    x = requests.post(config.get_config("llama_url"), json=json_obj)
     result = "Response from model: "
 
     for line in x.text.splitlines():
