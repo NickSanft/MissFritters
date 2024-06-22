@@ -1,21 +1,14 @@
 import json
-import pyttsx3
 import requests
 import speech_recognition as sr
 
 from config import Config
+from tts import StuffSayer
 
 config = Config()
-
-engine = pyttsx3.init()
-engine.setProperty('voice', "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\TTS_MS_EN-US_ZIRA_11.0")
+thing_sayer = StuffSayer()
 
 r = sr.Recognizer()
-
-def say_stuff(message: str):
-    print("Message to say: {}".format(message))
-    engine.say(message)
-    engine.runAndWait()
 
 
 def hear_stuff():
@@ -44,26 +37,15 @@ def ask_stuff(prompt_to_ask: str):
     return result
 
 
-def print_config():
-    print(sr.Microphone.list_microphone_names())
-    print(sr.Microphone.list_microphone_names()[2])
-
-    voices = engine.getProperty('voices')
-    for voice in voices:
-        # to get the info. about various voices in our PC
-        print("Voice:")
-        print("ID: %s" % voice.id)
-        print("Name: %s" % voice.name)
-        print("Age: %s" % voice.age)
-        print("Gender: %s" % voice.gender)
-        print("Languages Known: %s" % voice.languages)
-
-
-if __name__ == '__main__':
-
-    say_stuff("Hey, I am Miss Fritters! What would you like to ask?")
+def hear_mode():
+    thing_sayer.say_stuff("Hey, I am Miss Fritters! What would you like to ask?")
 
     while True:
         prompt = hear_stuff()
         response = ask_stuff(prompt)
-        say_stuff(response)
+        thing_sayer.say_stuff(response)
+
+
+if __name__ == '__main__':
+    #hear_mode()
+    thing_sayer.say_stuff("hello")
