@@ -1,4 +1,6 @@
+import os
 import playsound
+import time
 import torch
 
 from TTS.api import TTS
@@ -11,7 +13,8 @@ class AdvancedStuffSayer:
 
     def say_stuff(self, message: str):
         print("Message to say: {}".format(message))
-        output_file = "output.wav"
+        output_file = "output_" + str(round(time.time() * 1000)) + ".wav"
+        print("Generating file...")
         self.tts.tts_to_file(
             text=message,
             file_path=output_file,
@@ -19,10 +22,12 @@ class AdvancedStuffSayer:
             language="en",
             split_sentences=True
         )
-        print("Generated! Saying...")
+        print("Generated file as {}! Saying...".format(output_file))
         playsound.playsound(output_file)
+        if os.path.exists(output_file):
+            os.remove(output_file)
 
     def print_staff_saying_config(self):
-        print(TTS().list_models())
+        print(self.tts.list_models())
         print("Initializing")
         print("Initialization Complete")
