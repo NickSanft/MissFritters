@@ -2,11 +2,17 @@ import json
 import requests
 import speech_recognition as sr
 
+from simple_tts import SimpleStuffSayer
+from advanced_tts import AdvancedStuffSayer
 from config import Config
-from tts import StuffSayer
+
+
+
+
 
 config = Config()
-thing_sayer = StuffSayer()
+thing_sayer = AdvancedStuffSayer()
+#thing_sayer = SimpleStuffSayer()
 
 r = sr.Recognizer()
 
@@ -47,5 +53,9 @@ def hear_mode():
 
 
 if __name__ == '__main__':
-    #hear_mode()
-    thing_sayer.say_stuff("hello")
+    hear_mode()
+    #thing_sayer.say_stuff("hello")
+    #thing_sayer.say_stuff("hi there!")
+
+
+

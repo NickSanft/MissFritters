@@ -1,7 +1,7 @@
 import pyttsx3
 
 
-class StuffSayer:
+class SimpleStuffSayer:
     engine = pyttsx3.init()
 
     def __init__(self):
