@@ -1,30 +1,23 @@
-import json
-import requests
-
 from tts_simple import SimpleStuffSayer
 from tts_advanced import AdvancedStuffSayer
 from config import Config
 from stt import StuffHearer
+from langchain_community.llms import Ollama
 
 config = Config()
 stuff_sayer = AdvancedStuffSayer()
 #stuff_sayer = SimpleStuffSayer()
 stuff_hearer = StuffHearer()
 
+
 config_llama_model = "llama_model"
-config_llama_url = "llama_url"
+ollama_instance = Ollama(model=config.get_config(config_llama_model))
 
 
 def ask_stuff(prompt_to_ask: str):
-    json_obj = {'model': config.get_config(config_llama_model), 'prompt': prompt_to_ask}
     print("Prompt to ask: " + prompt_to_ask)
-    x = requests.post(config.get_config(config_llama_url), json=json_obj)
-    result = "Response from model: "
-
-    for line in x.text.splitlines():
-        j = json.loads(line)
-        result = result + j["response"]
-    print(result)
+    result = ollama_instance.invoke(prompt_to_ask)
+    print("Response from model: {}".format(result).format(result))
     return result
 
 
