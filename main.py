@@ -1,8 +1,8 @@
 import json
 import requests
 
-from simple_tts import SimpleStuffSayer
-from advanced_tts import AdvancedStuffSayer
+from tts_simple import SimpleStuffSayer
+from tts_advanced import AdvancedStuffSayer
 from config import Config
 from stt import StuffHearer
 
@@ -31,7 +31,9 @@ def ask_stuff(prompt_to_ask: str):
 def hear_mode():
     stuff_sayer.say_stuff("Hey, I am Miss Fritters! What would you like to ask?")
     while True:
-        prompt = stuff_hearer.hear_stuff()
+        prompt = None
+        while prompt is None:
+            prompt = stuff_hearer.hear_stuff()
         response = ask_stuff(prompt)
         stuff_sayer.say_stuff(response)
 

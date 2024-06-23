@@ -5,6 +5,7 @@ class StuffHearer:
     r = sr.Recognizer()
 
     def hear_stuff(self):
+        result = None
         with sr.Microphone() as source:
             self.r.adjust_for_ambient_noise(source, duration=1)
             print("Speak your truth!")
