@@ -11,7 +11,6 @@ stuff_sayer = AdvancedStuffSayer()
 #stuff_sayer = SimpleStuffSayer()
 stuff_hearer = StuffHearer()
 
-config_mic = "microphone_device_no"
 config_llama_model = "llama_model"
 config_llama_url = "llama_url"
 
@@ -30,12 +29,9 @@ def ask_stuff(prompt_to_ask: str):
 
 
 def hear_mode():
-    if not config.has_config(config_mic):
-        print("No microphone device configured!!!")
-        config.add_config(config_mic, stuff_hearer.get_mic_device())
     stuff_sayer.say_stuff("Hey, I am Miss Fritters! What would you like to ask?")
     while True:
-        prompt = stuff_hearer.hear_stuff(config.get_config(config_mic))
+        prompt = stuff_hearer.hear_stuff()
         response = ask_stuff(prompt)
         stuff_sayer.say_stuff(response)
 
