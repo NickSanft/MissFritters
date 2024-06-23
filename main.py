@@ -6,10 +6,6 @@ from simple_tts import SimpleStuffSayer
 from advanced_tts import AdvancedStuffSayer
 from config import Config
 
-
-
-
-
 config = Config()
 thing_sayer = AdvancedStuffSayer()
 #thing_sayer = SimpleStuffSayer()
@@ -53,9 +49,5 @@ def hear_mode():
 
 
 if __name__ == '__main__':
-    hear_mode()
-    #thing_sayer.say_stuff("hello")
-    #thing_sayer.say_stuff("hi there!")
-
-
-
+    #hear_mode()
+    thing_sayer.say_stuff("Hello there!")
