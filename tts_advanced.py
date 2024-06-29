@@ -27,6 +27,10 @@ class AdvancedStuffSayer:
         if os.path.exists(output_file):
             os.remove(output_file)
 
+    def get_available_speakers(self):
+        for speaker in self.tts.speakers:
+            print(speaker)
+
     def print_staff_saying_config(self):
         print(self.tts.list_models())
         print("Initializing")
