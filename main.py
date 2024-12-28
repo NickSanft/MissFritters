@@ -1,3 +1,5 @@
+from playsound import playsound
+
 from tts_simple import SimpleStuffSayer
 from tts_advanced import AdvancedStuffSayer
 from config import Config
@@ -30,7 +32,7 @@ def hear_mode():
         response = ask_stuff(prompt)
         stuff_sayer.say_stuff(response)
 
-
 if __name__ == '__main__':
-    hear_mode()
-    #stuff_sayer.say_stuff("Hello!")
+    #hear_mode()
+    stuff_sayer.say_stuff("Hello, you are a good dog!")
+    #stuff_sayer.say_stuff(ask_stuff("What is the weather like in Chicago?"))
