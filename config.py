@@ -14,7 +14,7 @@ class Config:
     def create_default_config_file(self):
         dictionary = {
             "llama_url": "http://localhost:11434/api/generate",
-            "llama_model": "llama3"
+            "llama_model": "llama3.1"
         }
         with open(self.config_file, "w") as outfile:
             json.dump(dictionary, outfile)
