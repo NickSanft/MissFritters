@@ -48,7 +48,7 @@ def ask_stuff(prompt: str) -> str:
         return f"There's some malformed JSON in this response: {ollama_response}"
 
 
-def find_first_json_object(input_str: str) -> str:
+def find_first_json_object(input_str: str) -> str | None:
     """Extract and return the first valid JSON object from the string."""
     start_index = input_str.find('{')
     if start_index == -1:
