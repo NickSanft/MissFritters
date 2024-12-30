@@ -10,77 +10,82 @@ stuff_sayer = AdvancedStuffSayer()
 stuff_hearer = StuffHearer()
 
 text_only = False
-fritters_key = "fritters_action"
-weather_action = "get_weather"
-weather_prompt_addition = """
+
+# Constants
+FRITTERS_KEY = "fritters_action"
+WEATHER_ACTION = "get_weather"
+CONFIG_LLAMA_MODEL  = "llama_model"
+
+WEATHER_PROMPT_ADDITION  = """
 Please respond as you normally would unless the user is asking specifically about the weather in a city. If they are, please do the following: 
     1) Please return a JSON key called {} with a value of {} and a JSON key for the city.
     2) If your model knows the definite latitude and longitude of the city, please also provide JSON keys called latitude and longitude.
     3) If the user specified fahrenheit or celsius, please also provide a JSON key called temperature_unit with a value of fahrenheit or celsius respectively.
-""".format(fritters_key, weather_action)
+""".format(FRITTERS_KEY, WEATHER_ACTION)
 
-config_llama_model = "llama_model"
-ollama_instance = Ollama(model=config.get_config(config_llama_model))
+# Initialize Ollama model
+ollama_instance = Ollama(model=config.get_config(CONFIG_LLAMA_MODEL))
 
-def ask_stuff(prompt_to_ask: str):
-    full_request = "The user is asking: \"{}\". {}".format(prompt_to_ask, weather_prompt_addition)
-    print("Full request to ask: " + full_request)
+
+def ask_stuff(prompt: str) -> str:
+    """Ask the Ollama model and handle response."""
+    full_request = f'The user is asking: "{prompt}". {WEATHER_PROMPT_ADDITION}'
+    print(f"Full request to ask: {full_request}")
+
     ollama_response = ollama_instance.invoke(full_request)
-    print("Response from model: {}".format(ollama_response))
+    print(f"Response from model: {ollama_response}")
 
     json_str = find_first_json_object(ollama_response)
-    if json_str is None:
-        print("No JSON here, buddy!")
+    if not json_str:
+        print("No JSON object found!")
         return ollama_response
-    else:
-        print("JSON Object to parse, good luck: {}".format(json_str))
-        try:
-            json_obj = json.loads(json_str)
-            return perform_action(json_obj)
-        except json.JSONDecodeError:
-            return "There's some json in this response, but it's gross {}".format(ollama_response)
+
+    print(f"JSON Object to parse: {json_str}")
+    try:
+        json_obj = json.loads(json_str)
+        return perform_action(json_obj)
+    except json.JSONDecodeError:
+        return f"There's some malformed JSON in this response: {ollama_response}"
 
 
-def find_first_json_object(input_str):
-    # Variable to keep track of where the JSON object starts
+def find_first_json_object(input_str: str) -> str:
+    """Extract and return the first valid JSON object from the string."""
     start_index = input_str.find('{')
-
     if start_index == -1:
-        return None  # No opening brace found, so no JSON object
+        return None  # No opening brace found
 
-    # Start scanning for the end of the first complete JSON object
     brace_count = 0
     for i in range(start_index, len(input_str)):
         char = input_str[i]
-
         if char == '{':
             brace_count += 1
         elif char == '}':
             brace_count -= 1
 
-        # If brace count is 0, we found the end of a complete JSON object
         if brace_count == 0:
-            end_index = i + 1
-            json_str = input_str[start_index:end_index]
-            return json_str
-    # If no complete JSON object is found
-    return None
+            return input_str[start_index:i + 1]  # Return the complete JSON object
 
-def perform_action(json_obj: json):
-    if fritters_key in json_obj:
-        action_to_perform = json_obj[fritters_key]
-        if action_to_perform == weather_action:
-            return weather.get_weather(json_obj)
+    return None  # No complete JSON object found
+
+def perform_action(json_obj: dict) -> str:
+    """Perform an action based on the parsed JSON object."""
+    if FRITTERS_KEY in json_obj and json_obj[FRITTERS_KEY] == WEATHER_ACTION:
+        return weather.get_weather(json_obj)
+    return "Action not recognized or incomplete JSON."
+
 
 def hear_mode():
+    """Activate the hear mode to interact with the user."""
     stuff_sayer.say_stuff("Hey, I am Miss Fritters! What would you like to ask?")
+
     while True:
         prompt = None
         while prompt is None:
-            prompt = stuff_hearer.hear_stuff()
+            prompt = stuff_hearer.hear_stuff()  # Wait for a valid prompt
+
         response = ask_stuff(prompt)
         if text_only:
-            print("Text only set, response is {}".format(response))
+            print(f"Text only mode, response: {response}")
         else:
             stuff_sayer.say_stuff(response)
 
