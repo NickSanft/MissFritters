@@ -90,7 +90,7 @@ def hear_mode():
             stuff_sayer.say_stuff(response)
 
 if __name__ == '__main__':
-    #hear_mode()
+    hear_mode()
     #stuff_sayer.say_stuff("Hey")
-    prompt = "What the weather is like in Chicago today?"
-    print(ask_stuff(prompt))
+    #prompt = "What the weather is like in Chicago today?"
+    #print(ask_stuff(prompt))
