@@ -21,7 +21,7 @@ def get_lat_long(city: str):
 		"language": "en",
 		"format": "json"
 	}
-	print("geo_params:", geo_params)
+	print("geo_params {}".format(geo_params))
 	response = requests.get("https://geocoding-api.open-meteo.com/v1/search", params=geo_params)
 	if response.status_code == 200:
 		try:

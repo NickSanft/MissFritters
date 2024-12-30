@@ -3,14 +3,13 @@ from config import Config
 from stt import StuffHearer
 from langchain_community.llms import Ollama
 import json
-import re
 import weather
 
 config = Config()
 stuff_sayer = AdvancedStuffSayer()
-#stuff_sayer = SimpleStuffSayer()
 stuff_hearer = StuffHearer()
 
+text_only = False
 fritters_key = "fritters_action"
 weather_action = "get_weather"
 weather_prompt_addition = """
@@ -29,15 +28,43 @@ def ask_stuff(prompt_to_ask: str):
     ollama_response = ollama_instance.invoke(full_request)
     print("Response from model: {}".format(ollama_response))
 
-    match = re.search(r'{.*?}', ollama_response, re.DOTALL)
-    if not match:
+    json_str = find_first_json_object(ollama_response)
+    if json_str is None:
         print("No JSON here, buddy!")
         return ollama_response
     else:
-        json_str = match.group(0)
-        print("JSON Object: {}".format(json_str))
-        json_obj = json.loads(json_str)
-        return perform_action(json_obj)
+        print("JSON Object to parse, good luck: {}".format(json_str))
+        try:
+            json_obj = json.loads(json_str)
+            return perform_action(json_obj)
+        except json.JSONDecodeError:
+            return "There's some json in this response, but it's gross {}".format(ollama_response)
+
+
+def find_first_json_object(input_str):
+    # Variable to keep track of where the JSON object starts
+    start_index = input_str.find('{')
+
+    if start_index == -1:
+        return None  # No opening brace found, so no JSON object
+
+    # Start scanning for the end of the first complete JSON object
+    brace_count = 0
+    for i in range(start_index, len(input_str)):
+        char = input_str[i]
+
+        if char == '{':
+            brace_count += 1
+        elif char == '}':
+            brace_count -= 1
+
+        # If brace count is 0, we found the end of a complete JSON object
+        if brace_count == 0:
+            end_index = i + 1
+            json_str = input_str[start_index:end_index]
+            return json_str
+    # If no complete JSON object is found
+    return None
 
 def perform_action(json_obj: json):
     if fritters_key in json_obj:
@@ -52,10 +79,13 @@ def hear_mode():
         while prompt is None:
             prompt = stuff_hearer.hear_stuff()
         response = ask_stuff(prompt)
-        stuff_sayer.say_stuff(response)
+        if text_only:
+            print("Text only set, response is {}".format(response))
+        else:
+            stuff_sayer.say_stuff(response)
 
 if __name__ == '__main__':
-    hear_mode()
+    #hear_mode()
     #stuff_sayer.say_stuff("Hey")
-    #prompt = "What the weather is like in Chicago today?"
-    #print(ask_stuff(prompt))
+    prompt = "What the weather is like in Chicago today?"
+    print(ask_stuff(prompt))
