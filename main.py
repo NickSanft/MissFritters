@@ -111,7 +111,12 @@ async def on_ready():
 @client.event
 async def on_message(message):
     author = message.author.name
+    channel_type = message.channel
     if message.author == client.user:
+        print("That's me, not responding :)")
+        return
+    elif not isinstance(channel_type, discord.DMChannel) and not client.user.mentioned_in(message):
+        print("Not a DM or mention, not responding :)")
         return
 
     print("Incoming message: {} \r\n from: {}".format(message.content, author))
