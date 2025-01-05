@@ -63,7 +63,8 @@ class AdvancedStuffSayer:
         else:
             print(f"File already exists! Playing: {output_file}")
 
-        _play_audio(output_file)
+        return output_file
+        #_play_audio(output_file)
 
     def get_available_speakers(self):
         """

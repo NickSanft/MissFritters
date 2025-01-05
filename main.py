@@ -1,27 +1,32 @@
+from langchain_core.prompts import PromptTemplate
+
 from tts_advanced import AdvancedStuffSayer
 from config import Config
 from stt import StuffHearer
 from langchain_community.llms import Ollama
 import json
 import weather
+import discord
 
 config = Config()
 stuff_sayer = AdvancedStuffSayer()
 stuff_hearer = StuffHearer()
 
-text_only = False
+text_only = True
 
 # Constants
 FRITTERS_KEY = "fritters_action"
+DISCORD_KEY = "discord_bot_token"
 WEATHER_ACTION = "get_weather"
 CONFIG_LLAMA_MODEL  = "llama_model"
 
-WEATHER_PROMPT_ADDITION  = """
-Please respond as you normally would unless the user is asking specifically about the weather in a city. If they are, please do the following: 
-    1) Please return a JSON key called {} with a value of {} and a JSON key for the city.
-    2) If your model knows the definite latitude and longitude of the city, please also provide JSON keys called latitude and longitude.
-    3) If the user specified fahrenheit or celsius, please also provide a JSON key called temperature_unit with a value of fahrenheit or celsius respectively.
-""".format(FRITTERS_KEY, WEATHER_ACTION)
+
+# WEATHER_PROMPT_ADDITION  = """
+# Please respond as you normally would unless the user is asking specifically about the weather in a city. If they are, please do the following:
+#     1) Please return a JSON key called {} with a value of {} and a JSON key for the city.
+#     2) If your model knows the definite latitude and longitude of the city, please also provide JSON keys called latitude and longitude.
+#     3) If the user specified fahrenheit or celsius, please also provide a JSON key called temperature_unit with a value of fahrenheit or celsius respectively.
+# """.format(FRITTERS_KEY, WEATHER_ACTION)
 
 # Initialize Ollama model
 ollama_instance = Ollama(model=config.get_config(CONFIG_LLAMA_MODEL))
@@ -29,9 +34,11 @@ ollama_instance = Ollama(model=config.get_config(CONFIG_LLAMA_MODEL))
 
 def ask_stuff(prompt: str) -> str:
     """Ask the Ollama model and handle response."""
-    full_request = f'The user is asking: "{prompt}". {WEATHER_PROMPT_ADDITION}'
+    full_request = f'The user is asking: "{prompt}". {"You are a helpful chatbot that has personal opinions."}'
+    #full_request = f'The user is asking: "{prompt}". {WEATHER_PROMPT_ADDITION}'
     print(f"Full request to ask: {full_request}")
 
+    # Set up a LangChain prompt template
     ollama_response = ollama_instance.invoke(full_request)
     print(f"Response from model: {ollama_response}")
 
@@ -89,8 +96,51 @@ def hear_mode():
         else:
             stuff_sayer.say_stuff(response)
 
+
+intents = discord.Intents.default()
+intents.message_content = True
+
+client = discord.Client(intents=intents)
+
+
+@client.event
+async def on_ready():
+    print(f'We have logged in as {client.user}')
+
+
+@client.event
+async def on_message(message):
+    author = message.author.name
+    if message.author == client.user:
+        return
+
+    print("Incoming message: {} \r\n from: {}".format(message.content, author))
+
+    if message.content.lower().startswith('hello'):
+        original_response = "Hello, {}!".format(author)
+    else:
+        original_response = ask_stuff(message.content)
+
+    if len(original_response) > 2000:
+        response = "Way too long, you're getting multiple messages, {} \r\n".format(author)
+        responses = split_into_chunks(response)
+        for i, response in enumerate(responses):
+            message = await message.channel.send(response)
+    else:
+        await message.channel.send(original_response)
+
+    #output_file = stuff_sayer.say_stuff(original_response)
+    #await message.channel.send(file=discord.File(output_file))
+
+
+def split_into_chunks(s, chunk_size=2000):
+    return [s[i:i + chunk_size] for i in range(0, len(s), chunk_size)]
+
 if __name__ == '__main__':
-    hear_mode()
+    if config.has_config(DISCORD_KEY):
+        client.run(config.get_config(DISCORD_KEY))
+    else:
+        hear_mode()
     #stuff_sayer.say_stuff("Hey")
-    #prompt = "What the weather is like in Chicago today?"
+    #prompt = "Why is the sky blue?"
     #print(ask_stuff(prompt))
