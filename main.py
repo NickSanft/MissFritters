@@ -1,5 +1,3 @@
-from langchain_core.prompts import PromptTemplate
-
 from tts_advanced import AdvancedStuffSayer
 from config import Config
 from stt import StuffHearer
@@ -34,7 +32,11 @@ ollama_instance = Ollama(model=config.get_config(CONFIG_LLAMA_MODEL))
 
 def ask_stuff(prompt: str) -> str:
     """Ask the Ollama model and handle response."""
-    full_request = f'The user is asking: "{prompt}". {"You are a helpful chatbot that has personal opinions."}'
+    full_request = {
+        "question": prompt,
+        "role": "You are a helpful chatbot that has personal opinions"
+    }
+    full_request = str(full_request)
     #full_request = f'The user is asking: "{prompt}". {WEATHER_PROMPT_ADDITION}'
     print(f"Full request to ask: {full_request}")
 
