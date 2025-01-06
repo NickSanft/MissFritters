@@ -4,20 +4,15 @@ from stt import StuffHearer
 from langchain_community.llms import Ollama
 import json
 import weather
-import discord
+import fritters_constants
+import discord_integration
+
 
 config = Config()
 stuff_sayer = AdvancedStuffSayer()
 stuff_hearer = StuffHearer()
 
 text_only = True
-
-# Constants
-FRITTERS_KEY = "fritters_action"
-DISCORD_KEY = "discord_bot_token"
-WEATHER_ACTION = "get_weather"
-CONFIG_LLAMA_MODEL  = "llama_model"
-
 
 # WEATHER_PROMPT_ADDITION  = """
 # Please respond as you normally would unless the user is asking specifically about the weather in a city. If they are, please do the following:
@@ -27,7 +22,7 @@ CONFIG_LLAMA_MODEL  = "llama_model"
 # """.format(FRITTERS_KEY, WEATHER_ACTION)
 
 # Initialize Ollama model
-ollama_instance = Ollama(model=config.get_config(CONFIG_LLAMA_MODEL))
+ollama_instance = Ollama(model=config.get_config(fritters_constants.CONFIG_LLAMA_MODEL))
 
 
 def ask_stuff(prompt: str) -> str:
@@ -78,7 +73,7 @@ def find_first_json_object(input_str: str) -> str | None:
 
 def perform_action(json_obj: dict) -> str:
     """Perform an action based on the parsed JSON object."""
-    if FRITTERS_KEY in json_obj and json_obj[FRITTERS_KEY] == WEATHER_ACTION:
+    if fritters_constants.FRITTERS_KEY in json_obj and json_obj[fritters_constants.FRITTERS_KEY] == fritters_constants.WEATHER_ACTION:
         return weather.get_weather(json_obj)
     return "Action not recognized or incomplete JSON."
 
@@ -98,54 +93,9 @@ def hear_mode():
         else:
             stuff_sayer.say_stuff(response)
 
-
-intents = discord.Intents.default()
-intents.message_content = True
-
-client = discord.Client(intents=intents)
-
-
-@client.event
-async def on_ready():
-    print(f'We have logged in as {client.user}')
-
-
-@client.event
-async def on_message(message):
-    author = message.author.name
-    channel_type = message.channel
-    if message.author == client.user:
-        print("That's me, not responding :)")
-        return
-    elif not isinstance(channel_type, discord.DMChannel) and not client.user.mentioned_in(message):
-        print("Not a DM or mention, not responding :)")
-        return
-
-    print("Incoming message: {} \r\n from: {}".format(message.content, author))
-
-    if message.content.lower().startswith('hello'):
-        original_response = "Hello, {}!".format(author)
-    else:
-        original_response = ask_stuff(message.content)
-
-    if len(original_response) > 2000:
-        response = "Way too long, you're getting multiple messages, {} \r\n".format(author)
-        responses = split_into_chunks(response)
-        for i, response in enumerate(responses):
-            message = await message.channel.send(response)
-    else:
-        await message.channel.send(original_response)
-
-    #output_file = stuff_sayer.say_stuff(original_response)
-    #await message.channel.send(file=discord.File(output_file))
-
-
-def split_into_chunks(s, chunk_size=2000):
-    return [s[i:i + chunk_size] for i in range(0, len(s), chunk_size)]
-
 if __name__ == '__main__':
-    if config.has_config(DISCORD_KEY):
-        client.run(config.get_config(DISCORD_KEY))
+    if config.has_config(fritters_constants.DISCORD_KEY):
+        discord_integration.__init__(config)
     else:
         hear_mode()
     #stuff_sayer.say_stuff("Hey")
