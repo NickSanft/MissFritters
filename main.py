@@ -1,9 +1,10 @@
+from fritters_constants import USER_RESPONSE_KEY
 from tts_advanced import AdvancedStuffSayer
 from config import Config
 from stt import StuffHearer
 from langchain_community.llms import Ollama
 import json
-import weather
+import weather_integration
 import fritters_constants
 import discord_integration
 
@@ -14,12 +15,12 @@ stuff_hearer = StuffHearer()
 
 text_only = True
 
-# WEATHER_PROMPT_ADDITION  = """
-# Please respond as you normally would unless the user is asking specifically about the weather in a city. If they are, please do the following:
-#     1) Please return a JSON key called {} with a value of {} and a JSON key for the city.
-#     2) If your model knows the definite latitude and longitude of the city, please also provide JSON keys called latitude and longitude.
-#     3) If the user specified fahrenheit or celsius, please also provide a JSON key called temperature_unit with a value of fahrenheit or celsius respectively.
-# """.format(FRITTERS_KEY, WEATHER_ACTION)
+ROLE_DESCRIPTION = """
+You are a helpful chatbot that has personal opinions. 
+Please always respond with only a root JSON object, with the response to the user in a JSON key called {}. 
+If the user is asking about the weather, please add to the root JSON object a key called {} with a value of {} 
+and a JSON key called city for the city.
+""".format(USER_RESPONSE_KEY, fritters_constants.FRITTERS_KEY, fritters_constants.WEATHER_ACTION)
 
 # Initialize Ollama model
 ollama_instance = Ollama(model=config.get_config(fritters_constants.CONFIG_LLAMA_MODEL))
@@ -29,28 +30,29 @@ def ask_stuff(prompt: str) -> str:
     """Ask the Ollama model and handle response."""
     full_request = {
         "question": prompt,
-        "role": "You are a helpful chatbot that has personal opinions"
+        "role": ROLE_DESCRIPTION
     }
     full_request = str(full_request)
-    #full_request = f'The user is asking: "{prompt}". {WEATHER_PROMPT_ADDITION}'
     print(f"Full request to ask: {full_request}")
 
     # Set up a LangChain prompt template
     ollama_response = ollama_instance.invoke(full_request)
-    print(f"Response from model: {ollama_response}")
+    print(f"Original Response from model: {ollama_response}")
 
     json_str = find_first_json_object(ollama_response)
     if not json_str:
-        print("No JSON object found!")
+        print("No JSON object found, that's wrong... {}".format(ollama_response))
         return ollama_response
 
     print(f"JSON Object to parse: {json_str}")
     try:
         json_obj = json.loads(json_str)
-        return perform_action(json_obj)
+        if fritters_constants.FRITTERS_KEY in json_obj:
+            return perform_action(json_obj)
+        else:
+            return json_obj.get(fritters_constants.USER_RESPONSE_KEY)
     except json.JSONDecodeError:
         return f"There's some malformed JSON in this response: {ollama_response}"
-
 
 def find_first_json_object(input_str: str) -> str | None:
     """Extract and return the first valid JSON object from the string."""
@@ -74,7 +76,7 @@ def find_first_json_object(input_str: str) -> str | None:
 def perform_action(json_obj: dict) -> str:
     """Perform an action based on the parsed JSON object."""
     if fritters_constants.FRITTERS_KEY in json_obj and json_obj[fritters_constants.FRITTERS_KEY] == fritters_constants.WEATHER_ACTION:
-        return weather.get_weather(json_obj)
+        return weather_integration.get_weather(json_obj)
     return "Action not recognized or incomplete JSON."
 
 
@@ -88,6 +90,7 @@ def hear_mode():
             prompt = stuff_hearer.hear_stuff()  # Wait for a valid prompt
 
         response = ask_stuff(prompt)
+        print("Final response: {}".format(response))
         if text_only:
             print(f"Text only mode, response: {response}")
         else:

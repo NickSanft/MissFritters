@@ -32,6 +32,7 @@ async def on_message(message):
         original_response = "Hello, {}!".format(author)
     else:
         original_response = ask_stuff(message.content)
+    print("Final response: {}".format(original_response))
 
     if len(original_response) > 2000:
         response = "The answer was too long, so you're getting multiple messages {} \r\n".format(author)
