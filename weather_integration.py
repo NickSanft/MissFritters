@@ -65,25 +65,20 @@ def fetch_weather_data(weather_params):
     return openmeteo.weather_api("https://api.open-meteo.com/v1/forecast", params=weather_params)
 
 
-def get_weather(json_obj: dict):
+def get_weather(city: str):
     """
     Retrieve and format the weather for a given city based on a JSON object containing city name,
     latitude, longitude, and temperature unit.
     """
-    city = json_obj["city"]
 
     # Get latitude and longitude, either from the json_obj or by fetching from the API
-    latitude, longitude = (json_obj.get("latitude"), json_obj.get(
-        "longitude")) if "latitude" in json_obj and "longitude" in json_obj else get_lat_long(city)
+    latitude, longitude = get_lat_long(city)
 
     if not latitude or not longitude:
         return f"Error: Unable to retrieve location data for {city}."
 
-    # Get the temperature unit, default to fahrenheit if not specified
-    temperature_unit = json_obj.get(TEMP_UNIT_KEY, DEFAULT_TEMP_UNIT)
-
     # Get the weather parameters and fetch the weather data
-    weather_params = get_weather_params(latitude, longitude, temperature_unit)
+    weather_params = get_weather_params(latitude, longitude, DEFAULT_TEMP_UNIT)
     responses = fetch_weather_data(weather_params)
 
     if responses:
@@ -91,5 +86,5 @@ def get_weather(json_obj: dict):
         current = response.Current()
         current_temperature = math.ceil(current.Variables(0).Value())
 
-        return f"The weather in {city} right now is {current_temperature} degrees {temperature_unit}."
+        return f"The weather in {city} right now is {current_temperature} degrees."
     return f"Error: Unable to fetch weather data for {city}."

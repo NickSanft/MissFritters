@@ -1,9 +1,10 @@
-from fritters_constants import USER_RESPONSE_KEY
+import random
+
+from langchain_ollama import ChatOllama
 from tts_advanced import AdvancedStuffSayer
 from config import Config
 from stt import StuffHearer
-from langchain_community.llms import Ollama
-import json
+from langchain_core.tools import tool
 import weather_integration
 import fritters_constants
 import discord_integration
@@ -15,70 +16,65 @@ stuff_hearer = StuffHearer()
 
 text_only = True
 
-ROLE_DESCRIPTION = """
-You are a helpful chatbot that has personal opinions. 
-Please always respond with only a root JSON object, with the response to the user in a JSON key called {}. 
-If the user is asking about the weather, please add to the root JSON object a key called {} with a value of {} 
-and a JSON key called city for the city.
-""".format(USER_RESPONSE_KEY, fritters_constants.FRITTERS_KEY, fritters_constants.WEATHER_ACTION)
-
-# Initialize Ollama model
-ollama_instance = Ollama(model=config.get_config(fritters_constants.CONFIG_LLAMA_MODEL))
-
+ROLE_DESCRIPTION = "You are a helpful chatbot that has personal opinions."
 
 def ask_stuff(prompt: str) -> str:
-    """Ask the Ollama model and handle response."""
-    full_request = {
-        "question": prompt,
-        "role": ROLE_DESCRIPTION
-    }
-    full_request = str(full_request)
-    print(f"Full request to ask: {full_request}")
-
-    # Set up a LangChain prompt template
-    ollama_response = ollama_instance.invoke(full_request)
+    print(f"Prompt to ask: {prompt}")
+    ollama_response = ollama_instance.invoke(prompt)
     print(f"Original Response from model: {ollama_response}")
+    print(f"Tool calls: {ollama_response.tool_calls}")
+    first_result = ollama_response.tool_calls[0]
+    first_result_args = first_result['args']
+    what_to_call = first_result['name']
 
-    json_str = find_first_json_object(ollama_response)
-    if not json_str:
-        print("No JSON object found, that's wrong... {}".format(ollama_response))
-        return ollama_response
+    print(f"What to call: {what_to_call}")
+    match what_to_call:
+        case "respond_to_user":
+            return respond_to_user(first_result_args['content'])
+        case "roll_dice":
+            print("Rollin dice...")
+            a = str(first_result_args['num_dice'])
+            b = str(first_result_args['num_sides'])
+            return roll_dice(a, b)
+        case "get_weather":
+            return get_weather(first_result_args['city'])
+        case _:
+            response_back = "Unknown tool_call: {} with args: {}".format(what_to_call, first_result_args)
+            print(response_back)
+            return response_back
 
-    print(f"JSON Object to parse: {json_str}")
-    try:
-        json_obj = json.loads(json_str)
-        if fritters_constants.FRITTERS_KEY in json_obj:
-            return perform_action(json_obj)
-        else:
-            return json_obj.get(fritters_constants.USER_RESPONSE_KEY)
-    except json.JSONDecodeError:
-        return f"There's some malformed JSON in this response: {ollama_response}"
+@tool(parse_docstring=True)
+def get_weather(city: str) -> str:
+    """Receives a city and gets the current weather from an API.
 
-def find_first_json_object(input_str: str) -> str | None:
-    """Extract and return the first valid JSON object from the string."""
-    start_index = input_str.find('{')
-    if start_index == -1:
-        return None  # No opening brace found
+    Args:
+        city (str): The name of the city.
+    """
+    return weather_integration.get_weather(city)
 
-    brace_count = 0
-    for i in range(start_index, len(input_str)):
-        char = input_str[i]
-        if char == '{':
-            brace_count += 1
-        elif char == '}':
-            brace_count -= 1
+@tool(parse_docstring=True)
+def roll_dice(num_dice: str, num_sides: str) -> str:
+    """Rolls a number of dice.
 
-        if brace_count == 0:
-            return input_str[start_index:i + 1]  # Return the complete JSON object
+    Args:
+        num_dice (str): The number of dice to roll in str format.
+        num_sides (str): The number of dice to roll in str format.
+    """
+    print("Preparing to roll {} {}-sided dice...".format(num_dice, num_sides))
+    results = []
+    for _ in range(int(num_dice)):
+        results.append(random.randint(1, int(num_sides)))
+    return "Here are the results: of rolling {} {}-sided dice\r\n {}".format(num_dice, num_sides, results)
 
-    return None  # No complete JSON object found
+@tool(parse_docstring=True)
+def respond_to_user(content: str) -> str:
+    """This tool call should always be used as default response when a specific tool is not determined.
 
-def perform_action(json_obj: dict) -> str:
-    """Perform an action based on the parsed JSON object."""
-    if fritters_constants.FRITTERS_KEY in json_obj and json_obj[fritters_constants.FRITTERS_KEY] == fritters_constants.WEATHER_ACTION:
-        return weather_integration.get_weather(json_obj)
-    return "Action not recognized or incomplete JSON."
-
+    Args:
+        content (str): The response to return to the user.
+    """
+    print(f"Response to user: {content}")
+    return content
 
 def hear_mode():
     """Activate the hear mode to interact with the user."""
@@ -104,3 +100,5 @@ if __name__ == '__main__':
     #stuff_sayer.say_stuff("Hey")
     #prompt = "Why is the sky blue?"
     #print(ask_stuff(prompt))
+
+ollama_instance = ChatOllama(model=config.get_config(fritters_constants.CONFIG_LLAMA_MODEL)).bind_tools([roll_dice, get_weather, respond_to_user])
