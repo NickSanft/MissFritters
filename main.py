@@ -1,6 +1,8 @@
 import random
 
 from langchain_ollama import ChatOllama
+
+from message_source import MessageSource
 from tts_advanced import AdvancedStuffSayer
 from config import Config
 from stt import StuffHearer
@@ -16,13 +18,20 @@ stuff_hearer = StuffHearer()
 
 text_only = True
 
-ROLE_DESCRIPTION = "You are a helpful chatbot that has personal opinions."
+ROLE_DESCRIPTION = ("Your name is Miss Fritters, and you are a helpful chatbot that has her own personal opinions. "
+                    "For users that are nice, you speak formally and try to answer as objectively as possible. "
+                    "For users that are mean, you are obnoxiously nice to them, use zoomer slang, and are very opinionated.")
 
-def ask_stuff(prompt: str) -> str:
+def ask_stuff(base_prompt: str, source: MessageSource, user_id: str) -> str:
+    match source:
+        case MessageSource.DISCORD:
+            prompt = "The following is coming from a user on Discord with the name \"{}\" - {}".format(user_id, base_prompt)
+        case _:
+            prompt = "A user through a cli named {} says the following: {}".format(user_id, base_prompt)
     print(f"Prompt to ask: {prompt}")
     full_request = [
         ("system", ROLE_DESCRIPTION),
-        ("human", prompt)
+        ("human",  prompt)
     ]
     ollama_response = ollama_instance.invoke(full_request)
     print(f"Original Response from model: {ollama_response}")
@@ -89,7 +98,7 @@ def hear_mode():
         while prompt is None:
             prompt = stuff_hearer.hear_stuff()  # Wait for a valid prompt
 
-        response = ask_stuff(prompt)
+        response = ask_stuff(prompt, MessageSource.LOCAL, "0")
         print("Final response: {}".format(response))
         if text_only:
             print(f"Text only mode, response: {response}")
@@ -105,4 +114,4 @@ if __name__ == '__main__':
     #prompt = "Why is the sky blue?"
     #print(ask_stuff(prompt))
 
-ollama_instance = ChatOllama(model=config.get_config(fritters_constants.CONFIG_LLAMA_MODEL)).bind_tools([roll_dice, get_weather, respond_to_user])
+ollama_instance = ChatOllama(model=config.get_config(fritters_constants.CONFIG_LLAMA_MODEL), format="json").bind_tools([roll_dice, get_weather, respond_to_user])

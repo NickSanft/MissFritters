@@ -2,6 +2,7 @@ import discord
 
 from main import ask_stuff
 import fritters_constants
+from message_source import MessageSource
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -31,7 +32,7 @@ async def on_message(message):
     if message.content.lower().startswith('hello'):
         original_response = "Hello, {}!".format(author)
     else:
-        original_response = ask_stuff(message.content)
+        original_response = ask_stuff(message.content, MessageSource.DISCORD, author)
     print("Final response: {}".format(original_response))
 
     if len(original_response) > 2000:
