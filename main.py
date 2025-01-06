@@ -20,7 +20,11 @@ ROLE_DESCRIPTION = "You are a helpful chatbot that has personal opinions."
 
 def ask_stuff(prompt: str) -> str:
     print(f"Prompt to ask: {prompt}")
-    ollama_response = ollama_instance.invoke(prompt)
+    full_request = [
+        ("system", ROLE_DESCRIPTION),
+        ("human", prompt)
+    ]
+    ollama_response = ollama_instance.invoke(full_request)
     print(f"Original Response from model: {ollama_response}")
     print(f"Tool calls: {ollama_response.tool_calls}")
     first_result = ollama_response.tool_calls[0]
