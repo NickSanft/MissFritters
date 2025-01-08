@@ -1,10 +1,11 @@
-from config import Config
+from main import ask_stuff
+from message_source import MessageSource
 from stt import StuffHearer
 from tts_advanced import AdvancedStuffSayer
 
-config = Config()
 stuff_sayer = AdvancedStuffSayer()
 stuff_hearer = StuffHearer()
+text_only = False
 
 def hear_mode():
     """Activate the hear mode to interact with the user."""

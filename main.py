@@ -4,17 +4,16 @@ from langchain_ollama import ChatOllama
 
 from memory import get_session_history
 from message_source import MessageSource
-from config import Config
-import fritters_constants
 import discord_integration
 from tools import get_weather, respond_to_user, handle_tool_calls
 
+LLAMA_MODEL = "llama3.1"
 HISTORY_KEY = "history"
 PROMPT_KEY = "prompt"
 USER_ID_KEY = "user_id"
 CONVERSATION_ID_KEY = "conversation_id"
 
-config = Config()
+use_discord_integration = True
 
 # Setup the chain with the message history
 prompt_template = ChatPromptTemplate.from_messages([
@@ -53,8 +52,7 @@ def ask_stuff(base_prompt: str, source: MessageSource, user_id: str) -> str:
 
     return handle_tool_calls(ollama_response.tool_calls)
 
-ollama_instance = (ChatOllama(model=config.get_config(fritters_constants.CONFIG_LLAMA_MODEL))
-                   .bind_tools([get_weather, respond_to_user]))
+ollama_instance = (ChatOllama(model=LLAMA_MODEL).bind_tools([get_weather, respond_to_user]))
 
 chain_with_message_history = RunnableWithMessageHistory(
     prompt_template | ollama_instance,
@@ -69,5 +67,5 @@ chain_with_message_history = RunnableWithMessageHistory(
 
 # Discord integration if configured
 if __name__ == '__main__':
-    if config.has_config(fritters_constants.DISCORD_KEY):
-        discord_integration.__init__(config)
+    if use_discord_integration:
+        discord_integration.__init__()
