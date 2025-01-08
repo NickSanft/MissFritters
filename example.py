@@ -1,5 +1,4 @@
 from langchain_core.chat_history import BaseChatMessageHistory, InMemoryChatMessageHistory
-from langchain_core.language_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnableWithMessageHistory, ConfigurableFieldSpec
 from langchain_ollama import ChatOllama
@@ -74,7 +73,7 @@ history_prompt_template = ChatPromptTemplate.from_messages([
 history_ollama_instance = ChatOllama(model=llama_model)
 
 chain_with_message_history = RunnableWithMessageHistory(
-    history_prompt_template | prompt_ollama_instance,
+    history_prompt_template | history_ollama_instance,
     get_session_history=get_session_history,
     input_messages_key=PROMPT_KEY,
     history_messages_key=HISTORY_KEY,
