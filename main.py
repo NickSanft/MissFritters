@@ -1,6 +1,12 @@
 import random
+from typing import List
 
+from langchain_core.chat_history import BaseChatMessageHistory
+from langchain_core.messages import BaseMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.runnables import RunnableWithMessageHistory, ConfigurableFieldSpec
 from langchain_ollama import ChatOllama
+from pydantic import BaseModel, Field
 
 from message_source import MessageSource
 from tts_advanced import AdvancedStuffSayer
@@ -11,31 +17,30 @@ import weather_integration
 import fritters_constants
 import discord_integration
 
-
 config = Config()
-stuff_sayer = AdvancedStuffSayer()
-stuff_hearer = StuffHearer()
+stuff_sayer = None
+stuff_hearer = None
 
 text_only = True
 
-ROLE_DESCRIPTION = ("Your name is Miss Fritters, and you are a helpful chatbot that has her own personal opinions. "
-                    "For users that are nice, you speak formally and try to answer as objectively as possible. "
-                    "For users that are mean, you are obnoxiously nice to them, use zoomer slang, and are very opinionated.")
 
 def ask_stuff(base_prompt: str, source: MessageSource, user_id: str) -> str:
+    role_description = ("Your name is Miss Fritters, and you are a helpful chatbot that has her own personal opinions. "
+     "For prompts that are mean, you use zoomer slang and are very opinionated. "
+                        "Otherwise, you speak formally and try to answer as objectively as possible. ")
     match source:
         case MessageSource.DISCORD:
-            prompt = "The following is coming from a user on Discord with the name \"{}\" - {}".format(user_id, base_prompt)
+            role_description = role_description + "This prompt is coming from a user on Discord with the name \"{}\" - {}".format(user_id, base_prompt)
         case _:
-            prompt = "A user through a cli named {} says the following: {}".format(user_id, base_prompt)
-    print(f"Prompt to ask: {prompt}")
-    full_request = [
-        ("system", ROLE_DESCRIPTION),
-        ("human",  prompt)
-    ]
-    ollama_response = ollama_instance.invoke(full_request)
+            role_description = role_description + "A user through a cli named {} says the following: {}".format(user_id, base_prompt)
+    print(f"Prompt to ask: {base_prompt}")
+    default_config = {"configurable": {"user_id": user_id, "conversation_id": "1"}}
+    print("Current store: {}".format(store))
+    ollama_response = chain_with_message_history.invoke({"role_description": role_description, "prompt": base_prompt}, config=default_config)
+
     print(f"Original Response from model: {ollama_response}")
     print(f"Tool calls: {ollama_response.tool_calls}")
+
     first_result = ollama_response.tool_calls[0]
     first_result_args = first_result['args']
     what_to_call = first_result['name']
@@ -105,13 +110,68 @@ def hear_mode():
         else:
             stuff_sayer.say_stuff(response)
 
+
 if __name__ == '__main__':
     if config.has_config(fritters_constants.DISCORD_KEY):
         discord_integration.__init__(config)
     else:
         hear_mode()
+        stuff_sayer = AdvancedStuffSayer()
+        stuff_hearer = StuffHearer()
     #stuff_sayer.say_stuff("Hey")
     #prompt = "Why is the sky blue?"
     #print(ask_stuff(prompt))
 
-ollama_instance = ChatOllama(model=config.get_config(fritters_constants.CONFIG_LLAMA_MODEL), format="json").bind_tools([roll_dice, get_weather, respond_to_user])
+prompt_template = ChatPromptTemplate.from_messages([
+    ("system", "{role_description}"),
+    MessagesPlaceholder(variable_name="history"),
+    ("human", "{prompt}"),
+])
+
+store = {}  # memory is maintained outside the chain
+
+ollama_instance = (ChatOllama(model=config.get_config(fritters_constants.CONFIG_LLAMA_MODEL)).bind_tools([get_weather, respond_to_user]))
+
+chain = prompt_template | ollama_instance
+
+class InMemoryHistory(BaseChatMessageHistory, BaseModel):
+    """In memory implementation of chat message history."""
+
+    messages: List[BaseMessage] = Field(default_factory=list)
+
+    def add_messages(self, messages: List[BaseMessage]) -> None:
+        """Add a list of messages to the store"""
+        self.messages.extend(messages)
+
+    def clear(self) -> None:
+        self.messages = []
+
+def get_session_history(user_id: str, conversation_id: str) -> BaseChatMessageHistory:
+    if (user_id, conversation_id) not in store:
+        store[(user_id, conversation_id)] = InMemoryHistory()
+    return store[(user_id, conversation_id)]
+
+chain_with_message_history = RunnableWithMessageHistory(
+    chain,
+    get_session_history=get_session_history,
+    input_messages_key="prompt",
+    history_messages_key="history",
+    history_factory_config=[
+        ConfigurableFieldSpec(
+            id="user_id",
+            annotation=str,
+            name="User ID",
+            description="Unique identifier for the user.",
+            default="",
+            is_shared=True,
+        ),
+        ConfigurableFieldSpec(
+            id="conversation_id",
+            annotation=str,
+            name="Conversation ID",
+            description="Unique identifier for the conversation.",
+            default="",
+            is_shared=True,
+        ),
+    ],
+)
