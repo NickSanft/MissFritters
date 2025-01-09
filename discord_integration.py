@@ -44,9 +44,9 @@ async def on_message(message):
         print("Not a DM or mention, not responding :)")
         return
 
-    print("Incoming message: {} \r\n from: {}".format(message.content, author))
+    print("Incoming message: {} \r\n from: {}".format(message.clean_content, author))
 
-    original_response = ask_stuff(message.content, MessageSource.DISCORD, author)
+    original_response = ask_stuff(message.clean_content, MessageSource.DISCORD, author)
     print("Final response: {}".format(original_response))
 
     if len(original_response) > 2000:

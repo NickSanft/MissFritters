@@ -11,10 +11,6 @@ class InMemoryHistory(BaseChatMessageHistory, BaseModel):
 
     def add_messages(self, messages: List[BaseMessage]) -> None:
         for message in messages:
-            if isinstance(message, AIMessage) and message.tool_calls:
-                first_result = message.tool_calls[0]
-                if first_result and first_result['name'] == "respond_to_user":
-                    message.content = first_result['args']['content']
             self.messages.append(message)
 
     def clear(self) -> None:
