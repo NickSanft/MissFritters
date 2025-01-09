@@ -37,6 +37,9 @@ class SQLiteHistory(BaseChatMessageHistory):
 
     @property
     def messages(self) -> List[BaseMessage]:
+        return self.get_user_messages()
+
+    def get_user_messages(self):
         # Fetch the messages from the SQLite database
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -48,12 +51,16 @@ class SQLiteHistory(BaseChatMessageHistory):
         conn.close()
 
         if result:
-            return jsonpickle.loads(result[0])  # Deserialize the messages
+            print("Current history: {}".format(result[0]))
+            return jsonpickle.loads(result[0]) # Serialize the messages
         return []
 
     def add_messages(self, messages: List[BaseMessage]) -> None:
+        existing_messages = self.get_user_messages()
+        existing_messages.extend(messages)
         # Serialize messages using jsonpickle
         serialized_messages = jsonpickle.dumps(messages)
+
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('''
