@@ -4,7 +4,16 @@ import deck_of_cards_integration
 import weather_integration
 
 @tool(parse_docstring=True)
-def reload_deck(user_id: str) -> str:
+def deck_cards_left(user_id: str) -> str:
+    """Receives a user_id and returns the number of cards left in their deck.
+
+    Args:
+        user_id: The user_id for the deck
+    """
+    return deck_of_cards_integration.get_remaining_card_number(user_id)
+
+@tool(parse_docstring=True)
+def deck_reload(user_id: str) -> str:
     """Receives a user_id and reloads their deck if present
 
     Args:
@@ -13,7 +22,7 @@ def reload_deck(user_id: str) -> str:
     return deck_of_cards_integration.reload_deck(user_id)
 
 @tool(parse_docstring=True)
-def draw_cards_from_deck(number_of_cards: int, user_id: str) -> str:
+def deck_draw_cards(number_of_cards: int, user_id: str) -> str:
     """Receives a number_of_cards and a user_id and draws a number of cards from a deck
 
     Args:
@@ -59,12 +68,15 @@ def process_tool_call(tool_name: str, args: dict) -> str:
         case "get_weather":
             city = args['city']
             return get_weather(city)
-        case "draw_cards_from_deck":
+        case "deck_draw_cards":
             num = args['number_of_cards']
             user = args['user_id']
             return deck_of_cards_integration.draw_cards(num, user)
-        case "reload_deck":
+        case "deck_reload":
             user = args['user_id']
             return deck_of_cards_integration.reload_deck(user)
+        case "deck_cards_left":
+            user = args['user_id']
+            return deck_of_cards_integration.get_remaining_card_number(user)
         case _:
             return f"Unknown tool call: {tool_name} with args: {args}"

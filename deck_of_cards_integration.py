@@ -26,6 +26,13 @@ CRITICAL_FAILURE_MESSAGES = [
 # Dictionary to store decks for each user
 USER_DECKS = {}
 
+# Function to get a user's number of cards left
+def get_remaining_card_number(user_id: str) -> str:
+    if user_id not in USER_DECKS:
+        return f"You don't have a deck, {user_id}. Stop trying to trick me."
+    num_cards = len(USER_DECKS[user_id].cards)
+    return f"You have {num_cards} cards remaining, {user_id}."
+
 # Function to reload a user's deck
 def reload_deck(user_id: str) -> str:
     """Reloads a new deck for the user, or creates one if not exists."""
