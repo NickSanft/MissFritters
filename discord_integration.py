@@ -46,10 +46,7 @@ async def on_message(message):
 
     print("Incoming message: {} \r\n from: {}".format(message.content, author))
 
-    if message.content.lower().startswith('hello'):
-        original_response = "Hello, {}!".format(author)
-    else:
-        original_response = ask_stuff(message.content, MessageSource.DISCORD, author)
+    original_response = ask_stuff(message.content, MessageSource.DISCORD, author)
     print("Final response: {}".format(original_response))
 
     if len(original_response) > 2000:
