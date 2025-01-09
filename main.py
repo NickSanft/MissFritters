@@ -2,7 +2,7 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnableWithMessageHistory, ConfigurableFieldSpec
 from langchain_ollama import ChatOllama
 
-from memory import get_session_history
+from sqlite_memory import get_session_history
 from message_source import MessageSource
 import discord_integration
 from tools import get_weather, respond_to_user, handle_tool_calls
@@ -65,7 +65,6 @@ chain_with_message_history = RunnableWithMessageHistory(
     ],
 )
 
-# Discord integration if configured
 if __name__ == '__main__':
     if use_discord_integration:
         discord_integration.__init__()
