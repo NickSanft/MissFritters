@@ -5,7 +5,7 @@ from langchain_ollama import ChatOllama
 from sqlite_memory import get_session_history_persistent_db_memory
 from message_source import MessageSource
 import discord_integration
-from tools import get_weather, respond_to_user, handle_tool_calls, draw_cards
+from tools import get_weather, respond_to_user, handle_tool_calls, draw_cards_from_deck, reload_deck
 
 LLAMA_MODEL = "llama3.1"
 HISTORY_KEY = "history"
@@ -52,7 +52,7 @@ def ask_stuff(base_prompt: str, source: MessageSource, user_id: str) -> str:
 
     return handle_tool_calls(ollama_response.tool_calls)
 
-ollama_instance = (ChatOllama(model=LLAMA_MODEL).bind_tools([get_weather, draw_cards, respond_to_user]))
+ollama_instance = (ChatOllama(model=LLAMA_MODEL).bind_tools([get_weather, draw_cards_from_deck, reload_deck, respond_to_user]))
 
 chain_with_message_history = RunnableWithMessageHistory(
     prompt_template | ollama_instance,

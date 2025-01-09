@@ -1,92 +1,112 @@
 import random
-import re
 
-regularSuits = ["Clubs", "Diamonds", "Hearts", "Spades"]
-ranks = ["Ace", "2", "3", "4", "5", "6", "7",
-         "8", "9", "10", "Jack", "Queen", "King"]
-successRanks = ['Ace', 'Jack', 'Queen', 'King']
-decksByUser = {}
+# Constants for suits, ranks, and success ranks
+SUITS = ["Clubs", "Diamonds", "Hearts", "Spades"]
+RANKS = ["Ace", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King"]
+SUCCESS_RANKS = ['Ace', 'Jack', 'Queen', 'King']
 
-notNumbersMessages = ["You really think numbers are letters, huh?",
-                      "You should really come with a warning label.",
-                      "You’re not stupid! You just have bad luck when you’re thinking."]
-failureMessages = ["It couldn't be too bad, could it?",
-                   "Maybe you'll just slip on a banana peel."]
-criticalfailureMessages = ["Pray to your gods.",
-                           "Aw man, am I gonna die?", "This is funny in a cosmic sort of way."]
+# Predefined messages for various outcomes
+NOT_NUMBER_MESSAGES = [
+    "You really think numbers are letters, huh?",
+    "You should really come with a warning label.",
+    "You’re not stupid! You just have bad luck when you’re thinking."
+]
 
-def draw(numCards: int, user_id: str) -> str:
-    response_messages = []
+FAILURE_MESSAGES = [
+    "It couldn't be too bad, could it?",
+    "Maybe you'll just slip on a banana peel."
+]
 
-    if user_id not in decksByUser:
-        decksByUser[user_id] = Deck()
-    deck = decksByUser[user_id]
+CRITICAL_FAILURE_MESSAGES = [
+    "Pray to your gods.",
+    "Aw man, am I gonna die?",
+    "This is funny in a cosmic sort of way."
+]
 
-    numSuccesses = 0
-    numFailures = 0
-    queenOfHearts = False
+# Dictionary to store decks for each user
+USER_DECKS = {}
 
-    response_messages.append("Drawing " + str(numCards) + " for " + user_id + "...")
+# Function to reload a user's deck
+def reload_deck(user_id: str) -> str:
+    """Reloads a new deck for the user, or creates one if not exists."""
+    USER_DECKS[user_id] = Deck()
+    return f"A new deck of cards has been started for {user_id}."
 
-    for i in range(0, numCards):
-        card = deck.drawCard()
-        if card.isSuccess():
-            numSuccesses += 1
-        if card.isFailure():
-            numFailures += 1
-        if card.isQueenOfHearts():
-            queenOfHearts = True
+# Function to draw cards for a user and summarize the results
+def draw_cards(num_cards: int, user_id: str) -> str:
+    """Draws a specified number of cards for the user and returns a summary."""
+    if user_id not in USER_DECKS:
+        USER_DECKS[user_id] = Deck()
 
-        response_messages.append(user_id + " drew: " + card.description + ". Cards left: " + str(len(deck.cards)))
+    deck = USER_DECKS[user_id]
+    num_successes = 0
+    num_failures = 0
+    queen_of_hearts_drawn = False
+    response = [f"Drawing {num_cards} card(s) for {user_id}..."]
 
-        if len(deck.cards) == 0:
-            response_messages.append("Out of cards! getting a new deck...")
-            decksByUser[user_id] = Deck()
-            deck = decksByUser[user_id]
+    # Draw the requested number of cards
+    for _ in range(num_cards):
+        card = deck.draw_card()
 
-    response_messages.append("```Total number of Successes: " + str(numSuccesses) + "\n")
+        # Count successes, failures, and check for Queen of Hearts
+        if card.is_success():
+            num_successes += 1
+        if card.is_failure():
+            num_failures += 1
+        if card.is_queen_of_hearts():
+            queen_of_hearts_drawn = True
 
-    if queenOfHearts:
-        response_messages.append("Queen Of Hearts! Add your charm to the number of successes! \n")
+        response.append(f"Drew: {card.description}. Cards left: {len(deck.cards)}")
 
-    if numFailures == 1:
-        response_messages.append("1 failure. " + random.choice(failureMessages) + "\n")
-    elif numFailures == 2:
-        response_messages.append("2 failures. " + random.choice(criticalfailureMessages) + "\n")
+        # If the deck is out of cards, reload it
+        if not deck.cards:
+            response.append("Out of cards! Getting a new deck...")
+            USER_DECKS[user_id] = Deck()
+            deck = USER_DECKS[user_id]
+
+    # Summary of the results
+    response.append(f"```Total number of Successes: {num_successes}\n")
+    if queen_of_hearts_drawn:
+        response.append("Queen of Hearts! Add your charm to the number of successes!\n")
+    if num_failures == 1:
+        response.append(f"1 failure. {random.choice(FAILURE_MESSAGES)}\n")
+    elif num_failures == 2:
+        response.append(f"2 failures. {random.choice(CRITICAL_FAILURE_MESSAGES)}\n")
     else:
-        response_messages.append("No failures, phew. \n")
+        response.append("No failures, phew.\n")
+    response.append("```")
 
-    response_messages.append("```")
-    return "\r\n".join(response_messages)
+    return "\r\n".join(response)
 
+# Class representing a deck of cards (with Jokers)
 class Deck:
-
     def __init__(self):
-        self.cards = [Card(rank, suit, rank + " of " + suit)
-                      for rank in ranks for suit in regularSuits]
+        """Initializes a deck of 52 cards plus two Jokers and shuffles them."""
+        self.cards = [Card(rank, suit, f"{rank} of {suit}") for rank in RANKS for suit in SUITS]
         self.cards.append(Card("Joker", "Red", "Red Joker"))
         self.cards.append(Card("Joker", "Black", "Black Joker"))
-
         random.shuffle(self.cards)
 
-    def drawCard(self):
+    def draw_card(self):
+        """Draws a card from the deck."""
         return self.cards.pop()
 
-
+# Class representing a single card
 class Card:
     def __init__(self, rank, suit, description):
-        self.suit = suit
+        """Initializes a card with its rank, suit, and description."""
         self.rank = rank
+        self.suit = suit
         self.description = description
 
-    def isSuccess(self):
+    def is_success(self):
+        """Checks if the card is a success (Ace, Jack, Queen, or King)."""
+        return self.rank in SUCCESS_RANKS
 
-        if any(re.findall('|'.join(successRanks), self.rank)):
-            return True
-        return False
-
-    def isFailure(self):
+    def is_failure(self):
+        """Checks if the card is a Joker (failure)."""
         return self.rank == "Joker"
 
-    def isQueenOfHearts(self):
+    def is_queen_of_hearts(self):
+        """Checks if the card is the Queen of Hearts."""
         return self.suit == "Hearts" and self.rank == "Queen"

@@ -4,7 +4,16 @@ import deck_of_cards_integration
 import weather_integration
 
 @tool(parse_docstring=True)
-def draw_cards(number_of_cards: int, user_id: str) -> str:
+def reload_deck(user_id: str) -> str:
+    """Receives a user_id and reloads their deck if present
+
+    Args:
+        user_id: The user_id of the deck of cards to reload.
+    """
+    return deck_of_cards_integration.reload_deck(user_id)
+
+@tool(parse_docstring=True)
+def draw_cards_from_deck(number_of_cards: int, user_id: str) -> str:
     """Receives a number_of_cards and a user_id and draws a number of cards from a deck
 
     Args:
@@ -50,9 +59,12 @@ def process_tool_call(tool_name: str, args: dict) -> str:
         case "get_weather":
             city = args['city']
             return get_weather(city)
-        case "draw_cards":
+        case "draw_cards_from_deck":
             num = args['number_of_cards']
             user = args['user_id']
-            return deck_of_cards_integration.draw(num, user)
+            return deck_of_cards_integration.draw_cards(num, user)
+        case "reload_deck":
+            user = args['user_id']
+            return deck_of_cards_integration.reload_deck(user)
         case _:
             return f"Unknown tool call: {tool_name} with args: {args}"
