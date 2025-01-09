@@ -56,10 +56,15 @@ class SQLiteHistory(BaseChatMessageHistory):
         return []
 
     def add_messages(self, messages: List[BaseMessage]) -> None:
+        for message in messages:
+            message.pretty_print()
         existing_messages = self.get_user_messages()
+        print("user_id: {} conversation_id: {}".format(self.user_id, self.conversation_id))
+        print("Existing messages: {}".format(existing_messages))
+        print("New messages: {}".format(messages))
         existing_messages.extend(messages)
         # Serialize messages using jsonpickle
-        serialized_messages = jsonpickle.dumps(messages)
+        serialized_messages = jsonpickle.dumps(existing_messages)
 
         conn = get_db_connection()
         cursor = conn.cursor()
