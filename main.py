@@ -2,7 +2,7 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnableWithMessageHistory, ConfigurableFieldSpec
 from langchain_ollama import ChatOllama
 
-from sqlite_memory import get_session_history
+from sqlite_memory import get_session_history_persistent_db_memory
 from message_source import MessageSource
 import discord_integration
 from tools import get_weather, respond_to_user, handle_tool_calls
@@ -56,7 +56,7 @@ ollama_instance = (ChatOllama(model=LLAMA_MODEL).bind_tools([get_weather, respon
 
 chain_with_message_history = RunnableWithMessageHistory(
     prompt_template | ollama_instance,
-    get_session_history=get_session_history,
+    get_session_history=get_session_history_persistent_db_memory,
     input_messages_key=PROMPT_KEY,
     history_messages_key=HISTORY_KEY,
     history_factory_config=[

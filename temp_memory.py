@@ -17,7 +17,7 @@ class InMemoryHistory(BaseChatMessageHistory, BaseModel):
         self.messages.clear()
 
 # Function to get session history
-def get_session_history(user_id: str, conversation_id: str) -> BaseChatMessageHistory:
+def get_session_history_temp_memory(user_id: str, conversation_id: str) -> BaseChatMessageHistory:
     if (user_id, conversation_id) not in store:
         store[(user_id, conversation_id)] = InMemoryHistory()
     return store[(user_id, conversation_id)]

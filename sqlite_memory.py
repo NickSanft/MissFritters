@@ -85,7 +85,7 @@ class SQLiteHistory(BaseChatMessageHistory):
         conn.close()
 
 # Function to get session history (now using SQLite)
-def get_session_history(user_id: str, conversation_id: str) -> SQLiteHistory:
+def get_session_history_persistent_db_memory(user_id: str, conversation_id: str) -> SQLiteHistory:
     history = SQLiteHistory(user_id=user_id, conversation_id=conversation_id)
     return history
 
