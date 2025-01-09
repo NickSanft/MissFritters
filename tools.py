@@ -1,7 +1,17 @@
 from langchain_core.tools import tool
 
+import deck_of_cards_integration
 import weather_integration
 
+@tool(parse_docstring=True)
+def draw_cards(number_of_cards: int, user_id: str) -> str:
+    """Receives a number_of_cards and a user_id and draws a number of cards from a deck
+
+    Args:
+        number_of_cards: The number of cards to draw.
+        user_id: The user_id of the deck of cards to draw from.
+    """
+    return deck_of_cards_integration.draw(number_of_cards, user_id)
 
 @tool(parse_docstring=True)
 def get_weather(city: str) -> str:
@@ -38,6 +48,11 @@ def process_tool_call(tool_name: str, args: dict) -> str:
         case "respond_to_user":
             return respond_to_user(args['content'])
         case "get_weather":
-            return get_weather(args['city'])
+            city = args['city']
+            return get_weather(city)
+        case "draw_cards":
+            num = args['number_of_cards']
+            user = args['user_id']
+            return deck_of_cards_integration.draw(num, user)
         case _:
             return f"Unknown tool call: {tool_name} with args: {args}"

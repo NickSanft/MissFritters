@@ -5,7 +5,7 @@ from langchain_ollama import ChatOllama
 from sqlite_memory import get_session_history_persistent_db_memory
 from message_source import MessageSource
 import discord_integration
-from tools import get_weather, respond_to_user, handle_tool_calls
+from tools import get_weather, respond_to_user, handle_tool_calls, draw_cards
 
 LLAMA_MODEL = "llama3.1"
 HISTORY_KEY = "history"
@@ -35,8 +35,8 @@ def format_role_description(base_prompt: str, source: MessageSource, user_id: st
 
 def get_source_info(source: MessageSource, base_prompt: str, user_id: str) -> str:
     if source == MessageSource.DISCORD:
-        return f"This prompt is coming from a user on Discord with the name \"{user_id}\" - {base_prompt}"
-    return f"A user through a CLI named {user_id} says: {base_prompt}"
+        return f"This prompt is coming from a user on Discord with the user_id \"{user_id}\" - {base_prompt}"
+    return f"A user through a CLI with the user_id {user_id} says: {base_prompt}"
 
 # Main function to ask questions with specific tools
 def ask_stuff(base_prompt: str, source: MessageSource, user_id: str) -> str:
@@ -52,7 +52,7 @@ def ask_stuff(base_prompt: str, source: MessageSource, user_id: str) -> str:
 
     return handle_tool_calls(ollama_response.tool_calls)
 
-ollama_instance = (ChatOllama(model=LLAMA_MODEL).bind_tools([get_weather, respond_to_user]))
+ollama_instance = (ChatOllama(model=LLAMA_MODEL).bind_tools([get_weather, draw_cards, respond_to_user]))
 
 chain_with_message_history = RunnableWithMessageHistory(
     prompt_template | ollama_instance,
