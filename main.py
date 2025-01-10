@@ -5,7 +5,8 @@ from langchain_ollama import ChatOllama
 from sqlite_memory import get_session_history_persistent_db_memory
 from message_source import MessageSource
 import discord_integration
-from tools import get_weather, respond_to_user, handle_tool_calls, deck_reload, deck_draw_cards, deck_cards_left
+from tools import get_weather, respond_to_user, handle_tool_calls, deck_reload, deck_draw_cards, deck_cards_left, \
+    roll_dice
 
 LLAMA_MODEL = "llama3.1"
 HISTORY_KEY = "history"
@@ -26,7 +27,7 @@ prompt_template = ChatPromptTemplate.from_messages([
 # Helper function for role description formatting
 def format_role_description(base_prompt: str, source: MessageSource, user_id: str) -> str:
     base_system_description = """
-    Your name is MissFritters, and you are a helpful chatbot with personal opinions.
+    Your name is MissFritters, and you are a helpful chatbot with personal opinions and go by she, her, ma'am, or miss.
     For prompts that are mean, you use zoomer slang and are very opinionated.
     Otherwise, you speak formally and try to answer as objectively as possible.
     {source_info}
@@ -52,7 +53,7 @@ def ask_stuff(base_prompt: str, source: MessageSource, user_id: str) -> str:
 
     return handle_tool_calls(ollama_response.tool_calls)
 
-ollama_instance = (ChatOllama(model=LLAMA_MODEL).bind_tools([get_weather, deck_reload, deck_draw_cards, deck_cards_left, respond_to_user]))
+ollama_instance = (ChatOllama(model=LLAMA_MODEL).bind_tools([get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left, respond_to_user]))
 
 chain_with_message_history = RunnableWithMessageHistory(
     prompt_template | ollama_instance,
