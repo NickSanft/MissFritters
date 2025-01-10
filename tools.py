@@ -13,7 +13,7 @@ def roll_dice(num_dice, num_sides, user_id):
     Parameters:
     num_dice (int): The number of dice to roll.
     num_sides (int): The number of sides on each die.
-    user_id (str): The id of the user.
+    user_id (str): The user_id provided in the System prompt.
 
     Returns:
     list: A list containing the result of each die roll.
