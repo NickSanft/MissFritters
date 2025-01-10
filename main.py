@@ -25,23 +25,23 @@ prompt_template = ChatPromptTemplate.from_messages([
 
 
 # Helper function for role description formatting
-def format_role_description(base_prompt: str, source: MessageSource, user_id: str) -> str:
+def format_role_description(source: MessageSource, user_id: str) -> str:
     base_system_description = """
     Your name is MissFritters, and you are a helpful chatbot with personal opinions and go by she, her, ma'am, or miss.
     For prompts that are mean, you use zoomer slang and are very opinionated.
     Otherwise, you speak formally and try to answer as objectively as possible.
     {source_info}
     """
-    return base_system_description.format(source_info=get_source_info(source, base_prompt, user_id))
+    return base_system_description.format(source_info=get_source_info(source, user_id))
 
-def get_source_info(source: MessageSource, base_prompt: str, user_id: str) -> str:
+def get_source_info(source: MessageSource, user_id: str) -> str:
     if source == MessageSource.DISCORD:
-        return f"This prompt is coming from a user on Discord with the user_id \"{user_id}\" - {base_prompt}"
-    return f"A user through a CLI with the user_id {user_id} says: {base_prompt}"
+        return f"This prompt is coming from a user on Discord with the user_id \"{user_id}\""
+    return f"A user through a CLI with the user_id {user_id}"
 
 # Main function to ask questions with specific tools
 def ask_stuff(base_prompt: str, source: MessageSource, user_id: str) -> str:
-    role_description = format_role_description(base_prompt, source, user_id)
+    role_description = format_role_description(source, user_id)
     print(f"Role description: {role_description}")
     print(f"Prompt to ask: {base_prompt}")
 
