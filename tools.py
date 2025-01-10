@@ -34,7 +34,7 @@ def secret_roll_dice(num_dice, num_sides, user_id):
 
 @tool(parse_docstring=True)
 def deck_cards_left(user_id: str) -> str:
-    """Receives a user_id and returns the number of cards left in their deck.
+    """If the user asks how many cards are left, this will return the number of cards left in their deck.
 
     Args:
         user_id: The user_id for the deck
@@ -43,7 +43,7 @@ def deck_cards_left(user_id: str) -> str:
 
 @tool(parse_docstring=True)
 def deck_reload(user_id: str) -> str:
-    """Receives a user_id and reloads their deck if present
+    """If a user asks to reload their deck, this should be called.
 
     Args:
         user_id: The user_id of the deck of cards to reload.
@@ -52,7 +52,7 @@ def deck_reload(user_id: str) -> str:
 
 @tool(parse_docstring=True)
 def deck_draw_cards(number_of_cards: int, user_id: str) -> str:
-    """Receives a number_of_cards and a user_id and draws a number of cards from a deck
+    """If someone asks to draw cards, this should be called.
 
     Args:
         number_of_cards: The number of cards to draw.
@@ -62,16 +62,17 @@ def deck_draw_cards(number_of_cards: int, user_id: str) -> str:
 
 @tool(parse_docstring=True)
 def get_weather(city: str) -> str:
-    """Receives a city and gets the current weather from an API.
+    """If the user asks about the weather with a specific city this should be called.
+    Do not use this function if the user did not specify a city!
 
     Args:
-        city (str): The name of the city.
+        city (str): The name of the city. Must have a legitimate city name.
     """
     return weather_integration.get_weather(city)
 
 @tool(parse_docstring=True)
 def respond_to_user(content: str) -> str:
-    """This tool call should always be used as default response when a specific tool is not determined.
+    """This tool call should always be used as the default response when a specific tool is not determined.
 
     Args:
         content (str): The response to return to the user.
