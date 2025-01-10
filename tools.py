@@ -80,11 +80,11 @@ def respond_to_user(content: str) -> str:
     print(f"Response to user: {content}")
     return content
 
-def handle_tool_calls(tool_calls):
-    if not tool_calls:
-        return "No tool calls made."
+def handle_tool_calls(ollama_response):
+    if not ollama_response.tool_calls:
+        return "No tool calls made. \r\nContent: {}".format(ollama_response.content)
 
-    first_tool_call = tool_calls[0]
+    first_tool_call = ollama_response.tool_calls[0]
     tool_name = first_tool_call['name']
     print(f"Tool call: {tool_name}")
 

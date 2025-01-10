@@ -54,7 +54,7 @@ def ask_stuff(base_prompt: str, source: MessageSource, user_id: str) -> str:
     print(f"Original Response from model: {ollama_response}")
     print(f"Tool calls: {ollama_response.tool_calls}")
 
-    return handle_tool_calls(ollama_response.tool_calls)
+    return handle_tool_calls(ollama_response)
 
 ollama_instance = (ChatOllama(model=LLAMA_MODEL).bind_tools([get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left, respond_to_user]))
 
