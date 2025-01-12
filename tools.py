@@ -1,5 +1,4 @@
 from langchain_core.tools import tool
-from pydantic import ValidationError
 
 import deck_of_cards_integration
 import weather_integration
