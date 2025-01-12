@@ -1,6 +1,7 @@
 from langchain_ollama import ChatOllama
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
+import re, string
 
 from message_source import MessageSource
 from tools import get_weather, deck_reload, deck_draw_cards, deck_cards_left, roll_dice
@@ -30,12 +31,14 @@ def get_source_info(source: MessageSource, user_id: str) -> str:
 
 # Main function to ask questions with specific tools
 def ask_stuff(base_prompt: str, source: MessageSource, user_id: str) -> str:
-    role_description = format_role_description(source, user_id)
+    # Remove special characters because people love to have underscores in their usernames.
+    user_id_clean = re.sub(r'[^a-zA-Z0-9]', '', user_id)
+    role_description = format_role_description(source, user_id_clean)
     print(f"Role description: {role_description}")
     print(f"Prompt to ask: {base_prompt}")
 
-    config = {"configurable": {"thread_id": user_id}}
-    inputs = {"messages":[("system", role_description), ("user", base_prompt)]}
+    config = {"configurable": {"thread_id": user_id_clean}}
+    inputs = {"messages": [("system", role_description), ("user", base_prompt)]}
     ollama_response = print_stream(graph.stream(inputs, config=config, stream_mode="values"))
 
     print(f"Original Response from model: {ollama_response}")
