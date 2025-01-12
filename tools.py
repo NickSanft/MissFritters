@@ -1,4 +1,5 @@
 from langchain_core.tools import tool
+from pydantic import ValidationError
 
 import deck_of_cards_integration
 import weather_integration
@@ -81,15 +82,19 @@ def respond_to_user(content: str) -> str:
     return content
 
 def handle_tool_calls(ollama_response):
-    if not ollama_response.tool_calls:
-        return "No tool calls made. \r\nContent: {}".format(ollama_response.content)
+    try:
+        if not ollama_response.tool_calls:
+            return "No tool calls made. \r\nContent: {}".format(ollama_response.content)
 
-    first_tool_call = ollama_response.tool_calls[0]
-    tool_name = first_tool_call['name']
-    print(f"Tool call: {tool_name}")
+        first_tool_call = ollama_response.tool_calls[0]
+        tool_name = first_tool_call['name']
+        print(f"Tool call: {tool_name}")
 
-    first_result_args = first_tool_call['args']
-    return process_tool_call(tool_name, first_result_args)
+        first_result_args = first_tool_call['args']
+        return process_tool_call(tool_name, first_result_args)
+    except ValidationError as e:
+        print(e)
+        return ollama_response.content
 
 def process_tool_call(tool_name: str, args: dict) -> str:
     match tool_name:

@@ -44,6 +44,10 @@ async def on_message(message):
     original_response = ask_stuff(message.clean_content, MessageSource.DISCORD, author)
     print("Final response: {}".format(original_response))
 
+    if not original_response:
+        original_response = "The bot got sad and doesn't want to talk to you at the moment :("
+
+
     if len(original_response) > 2000:
         response = "The answer was too long, so you're getting multiple messages {} \r\n".format(author)
         responses = split_into_chunks(response)
