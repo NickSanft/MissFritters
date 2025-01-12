@@ -4,7 +4,6 @@ from langchain_ollama import ChatOllama
 
 from sqlite_memory import get_session_history_persistent_db_memory
 from message_source import MessageSource
-import discord_integration
 from tools import get_weather, respond_to_user, handle_tool_calls, deck_reload, deck_draw_cards, deck_cards_left, \
     roll_dice
 
@@ -13,8 +12,6 @@ HISTORY_KEY = "history"
 PROMPT_KEY = "prompt"
 USER_ID_KEY = "user_id"
 CONVERSATION_ID_KEY = "conversation_id"
-
-use_discord_integration = True
 
 # Setup the chain with the message history
 prompt_template = ChatPromptTemplate.from_messages([
@@ -28,18 +25,16 @@ prompt_template = ChatPromptTemplate.from_messages([
 def format_role_description(source: MessageSource, user_id: str) -> str:
     base_system_description = """
     Role:
-        Your name is MissFritters, and you are a helpful chatbot with personal opinions and respond to she, her, ma'am, or miss.
-        You will always respond with a tool_call, with the default being respond_to_user.
+        Your name is Miss Fritters, and you are a helpful chatbot with personal opinions and respond to she, her, ma'am, or miss.
         
-        For prompts that are mean, you use zoomer slang and are very opinionated.
-        Otherwise, you speak formally and try to answer as objectively as possible.
-    {source_info}
+        For prompts that are mean, you use zoomer slang. Otherwise, you speak normally.
+        {source_info}
     """
     return base_system_description.format(source_info=get_source_info(source, user_id))
 
 def get_source_info(source: MessageSource, user_id: str) -> str:
     if source == MessageSource.DISCORD:
-        return f"This prompt is coming from a user on Discord with the user_id \"{user_id}\""
+        return f"This human is coming from Discord with the user_id \"{user_id}\""
     return f"A user through a CLI with the user_id {user_id}"
 
 # Main function to ask questions with specific tools
@@ -69,6 +64,3 @@ chain_with_message_history = RunnableWithMessageHistory(
     ],
 )
 
-if __name__ == '__main__':
-    if use_discord_integration:
-        discord_integration.__init__()

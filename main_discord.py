@@ -3,17 +3,12 @@ from typing import Any
 
 import discord
 
-from main import ask_stuff
+from miss_fritters import ask_stuff
 from message_source import MessageSource
 
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
-
-def __init__():
-    discord_secret = get_key_from_json_file("config.json", "discord_bot_token")
-    client.run(discord_secret)
-
 
 def get_key_from_json_file(file_path: str, key_name: str) -> str | None:
     try:
@@ -63,3 +58,7 @@ async def on_message(message):
 
 def split_into_chunks(s, chunk_size=2000):
     return [s[i:i + chunk_size] for i in range(0, len(s), chunk_size)]
+
+if __name__ == '__main__':
+    discord_secret = get_key_from_json_file("config.json", "discord_bot_token")
+    client.run(discord_secret)

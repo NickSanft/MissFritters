@@ -1,31 +1,10 @@
-from main import ask_stuff
 from message_source import MessageSource
-from stt import StuffHearer
-from tts_advanced import AdvancedStuffSayer
+from miss_fritters import ask_stuff
 
-stuff_sayer = AdvancedStuffSayer()
-stuff_hearer = StuffHearer()
-text_only = False
-
-def hear_mode():
-    """Activate the hear mode to interact with the user."""
-    stuff_sayer.say_stuff("Hey, I am Miss Fritters! What would you like to ask?")
-
-    while True:
-        prompt = None
-        while prompt is None:
-            prompt = stuff_hearer.hear_stuff()  # Wait for a valid prompt
-
-        response = ask_stuff(prompt, MessageSource.LOCAL, "0")
-        print("Final response: {}".format(response))
-        if text_only:
-            print(f"Text only mode, response: {response}")
-        else:
-            stuff_sayer.say_stuff(response)
-
+user_id = "Terrence"
 
 if __name__ == '__main__':
-    hear_mode()
-    #stuff_sayer.say_stuff("Hey")
-    #prompt = "Why is the sky blue?"
-    #print(ask_stuff(prompt))
+    thing_to_ask = input("What would you like to ask Miss Fritters?\r\n")
+    while True:
+        response = ask_stuff(thing_to_ask, MessageSource.LOCAL, user_id)
+        thing_to_ask = input("\r\n\r\n\r\nRESPONSE FROM MODEL: " + response + "\r\n")
