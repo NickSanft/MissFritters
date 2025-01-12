@@ -1,24 +1,14 @@
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.runnables import RunnableWithMessageHistory, ConfigurableFieldSpec
 from langchain_ollama import ChatOllama
+from langgraph.prebuilt import create_react_agent
+from langgraph.checkpoint.memory import MemorySaver
 
-from sqlite_memory import get_session_history_persistent_db_memory
 from message_source import MessageSource
-from tools import get_weather, respond_to_user, handle_tool_calls, deck_reload, deck_draw_cards, deck_cards_left, \
+from tools import get_weather, deck_reload, deck_draw_cards, deck_cards_left, \
     roll_dice
 
-LLAMA_MODEL = "llama3.1"
-HISTORY_KEY = "history"
-PROMPT_KEY = "prompt"
-USER_ID_KEY = "user_id"
-CONVERSATION_ID_KEY = "conversation_id"
+LLAMA_MODEL = "incept5/llama3.1-claude"
 
-# Setup the chain with the message history
-prompt_template = ChatPromptTemplate.from_messages([
-    ("system", "{role_description}"),
-    MessagesPlaceholder(variable_name=HISTORY_KEY),
-    ("human", "{prompt}"),
-])
+memory = MemorySaver()
 
 
 # Helper function for role description formatting
@@ -26,16 +16,18 @@ def format_role_description(source: MessageSource, user_id: str) -> str:
     base_system_description = """
     Role:
         Your name is Miss Fritters, and you are a helpful chatbot with personal opinions and respond to she, her, ma'am, or miss.
-        
+
         For prompts that are mean, you use zoomer slang. Otherwise, you speak normally.
         {source_info}
     """
     return base_system_description.format(source_info=get_source_info(source, user_id))
 
+
 def get_source_info(source: MessageSource, user_id: str) -> str:
     if source == MessageSource.DISCORD:
         return f"This human is coming from Discord with the user_id \"{user_id}\""
     return f"A user through a CLI with the user_id {user_id}"
+
 
 # Main function to ask questions with specific tools
 def ask_stuff(base_prompt: str, source: MessageSource, user_id: str) -> str:
@@ -43,24 +35,26 @@ def ask_stuff(base_prompt: str, source: MessageSource, user_id: str) -> str:
     print(f"Role description: {role_description}")
     print(f"Prompt to ask: {base_prompt}")
 
-    default_config = {"configurable": {USER_ID_KEY: user_id, CONVERSATION_ID_KEY: "1"}}
-    ollama_response = chain_with_message_history.invoke({"role_description": role_description, PROMPT_KEY: base_prompt}, config=default_config)
+    config = {"configurable": {"thread_id": user_id}}
+    inputs = {"messages":[("system", role_description), ("user", base_prompt)]}
+    ollama_response = print_stream(graph.stream(inputs, config=config, stream_mode="values"))
 
     print(f"Original Response from model: {ollama_response}")
-    print(f"Tool calls: {ollama_response.tool_calls}")
+    return ollama_response
 
-    return handle_tool_calls(ollama_response)
 
-ollama_instance = (ChatOllama(model=LLAMA_MODEL).bind_tools([get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left, respond_to_user]))
+def print_stream(stream):
+    message = ""
+    for s in stream:
+        message = s["messages"][-1]
+        if isinstance(message, tuple):
+            print(message)
+        else:
+            message.pretty_print()
+    return message.content
 
-chain_with_message_history = RunnableWithMessageHistory(
-    prompt_template | ollama_instance,
-    get_session_history=get_session_history_persistent_db_memory,
-    input_messages_key=PROMPT_KEY,
-    history_messages_key=HISTORY_KEY,
-    history_factory_config=[
-        ConfigurableFieldSpec(id=USER_ID_KEY, annotation=str, is_shared=True),
-        ConfigurableFieldSpec(id=CONVERSATION_ID_KEY, annotation=str, is_shared=True),
-    ],
-)
 
+tools = [get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left]
+
+ollama_instance = ChatOllama(model=LLAMA_MODEL)
+graph = create_react_agent(ollama_instance, tools=tools, checkpointer=memory)
