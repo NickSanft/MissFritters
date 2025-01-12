@@ -57,3 +57,6 @@ tools = [get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left]
 
 ollama_instance = ChatOllama(model=LLAMA_MODEL)
 graph = create_react_agent(ollama_instance, tools=tools, checkpointer=memory)
+
+# with open("test.png", "wb") as binary_file:
+#     binary_file.write(graph.get_graph().draw_mermaid_png())
