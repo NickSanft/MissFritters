@@ -42,3 +42,10 @@ typing_extensions==4.12.2
 url-normalize==1.4.3
 urllib3==2.3.0
 yarl==1.18.3
+
+SpeechRecognition~=3.10.4
+langchain~=0.3.14
+pyttsx3~=2.90
+discord~=2.3.2
+pygame~=2.5.2
+torch~=2.3.1
