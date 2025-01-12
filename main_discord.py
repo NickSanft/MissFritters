@@ -47,8 +47,9 @@ async def on_message(message):
         original_response = "The bot got sad and doesn't want to talk to you at the moment :("
 
 
-    if len(original_response) > 2000:
-        response = "The answer was too long, so you're getting multiple messages {} \r\n".format(author)
+    resp_len = len(original_response)
+    if resp_len > 2000:
+        response = "The answer was over 2000 ({}), so you're getting multiple messages {} \r\n".format(resp_len, author) + original_response
         responses = split_into_chunks(response)
         for i, response in enumerate(responses):
             await message.channel.send(response)
