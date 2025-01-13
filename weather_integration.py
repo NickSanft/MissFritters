@@ -86,5 +86,5 @@ def get_weather(city: str):
         current = response.Current()
         current_temperature = math.ceil(current.Variables(0).Value())
 
-        return f"The weather in {city} right now is {current_temperature} degrees."
+        return f"The weather in {city} right now is {current_temperature} degrees Fahrenheit."
     return f"Error: Unable to fetch weather data for {city}."

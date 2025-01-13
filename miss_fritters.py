@@ -1,7 +1,7 @@
 from langchain_ollama import ChatOllama
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
-import re, string
+import re
 
 from message_source import MessageSource
 from tools import get_weather, deck_reload, deck_draw_cards, deck_cards_left, roll_dice
@@ -15,7 +15,7 @@ memory = MemorySaver()
 def format_role_description(source: MessageSource, user_id: str) -> str:
     base_system_description = """
     Role:
-        Your name is Miss Fritters, and you are a helpful chatbot with personal opinions and respond to she, her, ma'am, or miss.
+        Your name is Miss Fritters, and you are a helpful chatbot with personal opinions.
 
         For prompts that are mean, you use zoomer slang. Otherwise, you speak normally.
         {source_info}
@@ -43,7 +43,6 @@ def ask_stuff(base_prompt: str, source: MessageSource, user_id: str) -> str:
 
     print(f"Original Response from model: {ollama_response}")
     return ollama_response
-
 
 def print_stream(stream):
     message = ""
