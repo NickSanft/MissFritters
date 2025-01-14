@@ -24,8 +24,10 @@ def format_role_description(source: MessageSource, user_id: str) -> str:
 
 
 def get_source_info(source: MessageSource, user_id: str) -> str:
-    if source == MessageSource.DISCORD:
-        return f"This human is coming from Discord with the user_id \"{user_id}\""
+    if source == MessageSource.DISCORD_TEXT:
+        return f"This human is texting from Discord with the user_id \"{user_id}\""
+    elif source == MessageSource.DISCORD_VOICE:
+        return f"This human is coming from Discord with the user_id \"{user_id}\". Please answer in a few words."
     return f"A user through a CLI with the user_id {user_id}"
 
 

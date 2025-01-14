@@ -1,13 +1,18 @@
 import json
 
 import discord
+from discord.ext import commands
 
+from main_stt import stuff_sayer
 from miss_fritters import ask_stuff
 from message_source import MessageSource
 
+command_prefix = "$"
 intents = discord.Intents.default()
 intents.message_content = True
-client = discord.Client(intents=intents)
+client = commands.Bot(command_prefix=command_prefix, intents=intents)
+
+connection = None
 
 def get_key_from_json_file(file_path: str, key_name: str) -> str | None:
     try:
@@ -26,6 +31,39 @@ def get_key_from_json_file(file_path: str, key_name: str) -> str | None:
 async def on_ready():
     print(f'We have logged in as {client.user}')
 
+@client.command()
+async def hello(ctx):
+    await ctx.send("Hello!")
+
+@client.command()
+async def join(ctx):
+    try:
+        channel = ctx.author.voice.channel
+        await channel.connect()
+    except AttributeError as e:
+        await ctx.send("You are not connected to a voice channel, buddy!")
+
+# @client.command()
+# async def play(ctx):
+#     try:
+#         ctx.voice_client.play(discord.FFmpegPCMAudio(source="./something.mp3"))
+#     except AttributeError as e:
+#         await ctx.send("You are not connected to a voice channel, buddy!")
+
+@client.command()
+async def ask(ctx, *, message):
+    author = ctx.author.name
+    original_response = ask_stuff(message, MessageSource.DISCORD_VOICE, author)
+    output_file = stuff_sayer.say_stuff(original_response)
+    await ctx.voice_client.play(discord.FFmpegPCMAudio(source=output_file))
+
+@client.command()
+async def leave(ctx):
+    try:
+        await ctx.voice_client.disconnect()
+    except AttributeError as e:
+        await ctx.send("I am not connected to a voice channel, buddy!")
+
 
 @client.event
 async def on_message(message):
@@ -34,13 +72,17 @@ async def on_message(message):
     if message.author == client.user:
         print("That's me, not responding :)")
         return
+    elif message.content.startswith(command_prefix):
+        await client.process_commands(message)
+        return
     elif not isinstance(channel_type, discord.DMChannel) and not client.user.mentioned_in(message):
         print("Not a DM or mention, not responding :)")
         return
 
+
     print("Incoming message: {} \r\n from: {}".format(message.clean_content, author))
 
-    original_response = ask_stuff(message.clean_content, MessageSource.DISCORD, author)
+    original_response = ask_stuff(message.clean_content, MessageSource.DISCORD_TEXT, author)
     print("Final response: {}".format(original_response))
 
     if not original_response:
@@ -55,9 +97,6 @@ async def on_message(message):
             await message.channel.send(response)
     else:
         await message.channel.send(original_response)
-
-    #output_file = stuff_sayer.say_stuff(original_response)
-    #await message.channel.send(file=discord.File(output_file))
 
 
 def split_into_chunks(s, chunk_size=2000):
