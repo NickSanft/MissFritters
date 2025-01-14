@@ -30,6 +30,7 @@ platformdirs==4.3.6
 propcache==0.2.1
 pydantic~=2.10.4
 pydantic_core==2.27.2
+PyNaCl==1.5.0
 PyYAML==6.0.2
 requests==2.32.3
 requests-cache==1.2.1
@@ -42,7 +43,6 @@ typing_extensions==4.12.2
 url-normalize==1.4.3
 urllib3==2.3.0
 yarl==1.18.3
-
 SpeechRecognition~=3.10.4
 langchain~=0.3.14
 pyttsx3~=2.90
