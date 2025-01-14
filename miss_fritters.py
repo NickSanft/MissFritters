@@ -4,7 +4,7 @@ from langgraph.checkpoint.memory import MemorySaver
 import re
 
 from message_source import MessageSource
-from tools import get_weather, deck_reload, deck_draw_cards, deck_cards_left, roll_dice, search_web
+from tools import get_weather, deck_reload, deck_draw_cards, deck_cards_left, roll_dice, search_web, get_current_time
 
 LLAMA_MODEL = "incept5/llama3.1-claude"
 
@@ -57,7 +57,7 @@ def print_stream(stream):
     return message.content
 
 
-tools = [get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left, search_web]
+tools = [get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left, search_web, get_current_time]
 
 ollama_instance = ChatOllama(model=LLAMA_MODEL)
 graph = create_react_agent(ollama_instance, tools=tools, checkpointer=memory)

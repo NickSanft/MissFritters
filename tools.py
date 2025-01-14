@@ -4,8 +4,31 @@ import deck_of_cards_integration
 import weather_integration
 
 from duckduckgo_search import DDGS
+from datetime import datetime
+import pytz
 
 import random
+
+@tool(parse_docstring=True)
+def get_current_time():
+    """
+    Returns the current time as a string in RFC3339 (YYYY-MM-DDTHH:MM:SS) format.
+
+    Example - 2025-01-13T23:11:56.337644-06:00
+    """
+    # Get the current time in UTC
+    utc_now = datetime.now(pytz.utc)
+
+    # Convert to CST (Central Standard Time)
+    cst = pytz.timezone('US/Central')
+    cst_now = utc_now.astimezone(cst)
+
+    # Format the timestamp in RFC3339 format
+    rfc3339_timestamp = cst_now.isoformat()
+
+    print(rfc3339_timestamp)
+    return rfc3339_timestamp
+
 
 @tool(parse_docstring=True)
 def search_web(text_to_search: str):
