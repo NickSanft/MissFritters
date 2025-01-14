@@ -3,24 +3,37 @@ from langchain_core.tools import tool
 import deck_of_cards_integration
 import weather_integration
 
+from duckduckgo_search import DDGS
+
 import random
 
-@tool
-def roll_dice(num_dice, num_sides, user_id):
+@tool(parse_docstring=True)
+def search_web(text_to_search: str):
+    """
+    Takes in a string and returns results from the internet.
+
+    Args:
+    text_to_search (str): The text to search the internet for information.
+
+    Returns:
+    list: A list of dictionaries, each containing string keys and string values representing the search results.
+    """
+    results = DDGS().text(text_to_search, max_results=5)
+    print(results)
+    return results
+
+@tool(parse_docstring=True)
+def roll_dice(num_dice: int, num_sides: int, user_id: int):
     """
     Rolls a specified number of dice, each with a specified number of sides.
 
-    Parameters:
+    Args:
     num_dice (int): The number of dice to roll.
     num_sides (int): The number of sides on each die.
     user_id (str): The user_id provided in the System prompt.
 
     Returns:
     list: A list containing the result of each die roll.
-
-    Example:
-    >>> roll_dice(2, 6, "mike")
-    [4, 2]
     """
     if num_dice <= 0 or num_sides <= 0:
         raise ValueError("Both number of dice and number of sides must be positive integers.")

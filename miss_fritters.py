@@ -4,7 +4,7 @@ from langgraph.checkpoint.memory import MemorySaver
 import re
 
 from message_source import MessageSource
-from tools import get_weather, deck_reload, deck_draw_cards, deck_cards_left, roll_dice
+from tools import get_weather, deck_reload, deck_draw_cards, deck_cards_left, roll_dice, search_web
 
 LLAMA_MODEL = "incept5/llama3.1-claude"
 
@@ -17,7 +17,7 @@ def format_role_description(source: MessageSource, user_id: str) -> str:
     Role:
         Your name is Miss Fritters, and you are a helpful chatbot with personal opinions.
 
-        For prompts that are mean, you use zoomer slang. Otherwise, you speak normally.
+        For prompts that are mean, you use zoomer slang.
         {source_info}
     """
     return base_system_description.format(source_info=get_source_info(source, user_id))
@@ -27,7 +27,7 @@ def get_source_info(source: MessageSource, user_id: str) -> str:
     if source == MessageSource.DISCORD_TEXT:
         return f"This human is texting from Discord with the user_id \"{user_id}\""
     elif source == MessageSource.DISCORD_VOICE:
-        return f"This human is coming from Discord with the user_id \"{user_id}\". Please answer in a few words."
+        return f"This human is coming from Discord with the user_id \"{user_id}\". Please answer in 10 words or less if possible."
     return f"A user through a CLI with the user_id {user_id}"
 
 
@@ -57,7 +57,7 @@ def print_stream(stream):
     return message.content
 
 
-tools = [get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left]
+tools = [get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left, search_web]
 
 ollama_instance = ChatOllama(model=LLAMA_MODEL)
 graph = create_react_agent(ollama_instance, tools=tools, checkpointer=memory)
