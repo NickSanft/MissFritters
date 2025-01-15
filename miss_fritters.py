@@ -22,7 +22,7 @@ def format_role_description(source: MessageSource, user_id: str) -> str:
         
         get_current_time: returns the current time as an RFC3339 timestamp in US / Central Standard Time.
         
-        be_creative: Use if someone asks you to tell a story and return the full output.
+        be_creative: Only use if someone asks you to be creative, calls mistral to make up something.
         
         search_web: Searches the internet for a term and returns the results.
         

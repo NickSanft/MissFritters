@@ -42,7 +42,9 @@ def be_creative(prompt: str):
         prompt (str): The prompt to call mistral for a creative response.
     """
     mistral_resp = mistral_instance.invoke(prompt)
-    return mistral_resp.content
+    return (f"The below came from Mistral instead of Miss Fritters. I guess it's trying to be creative. \r\n"
+                 f"\r\nPrompt it asked for:\r\n {prompt}"
+                 f"\r\nWhat it got back:\r\n {mistral_resp.content}")
 
 
 @tool(parse_docstring=True)
