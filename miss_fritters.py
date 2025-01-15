@@ -4,7 +4,8 @@ from langgraph.checkpoint.memory import MemorySaver
 import re
 
 from message_source import MessageSource
-from tools import get_weather, deck_reload, deck_draw_cards, deck_cards_left, roll_dice, search_web, get_current_time
+from tools import get_weather, deck_reload, deck_draw_cards, deck_cards_left, roll_dice, search_web, get_current_time, \
+    be_creative
 
 LLAMA_MODEL = "incept5/llama3.1-claude"
 
@@ -17,14 +18,22 @@ def format_role_description(source: MessageSource, user_id: str) -> str:
     Role:
         Your name is Miss Fritters, and you are a helpful chatbot with personal opinions.
         
-        Here are the tools available to you, do not call the unless you need them.
+        Here are the tools available to you, do not call the tools unless you need to.
         
         get_current_time: returns the current time as an RFC3339 timestamp in US / Central Standard Time.
+        
+        be_creative: Use if someone asks you to tell a story and return the full output.
+        
         search_web: Searches the internet for a term and returns the results.
+        
         roll_dice: used to roll different types of dice.
+        
         get_weather: used to get the temperature from a specific city in Fahrenheit. Please do not use it unless the user gives you a specific city.'
+        
         deck_draw_cards: Used to draw cards from a deck of cards.
+        
         deck_cards_left: Used to find the remaining cards in a deck of cards.
+        
         deck_reload: Shuffles or reloads the deck of cards that is currently active for the user..
         
         For prompts that are mean, you use zoomer slang.
@@ -67,7 +76,7 @@ def print_stream(stream):
     return message.content
 
 
-tools = [get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left, search_web, get_current_time]
+tools = [be_creative, get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left, search_web, get_current_time]
 
 ollama_instance = ChatOllama(model=LLAMA_MODEL)
 graph = create_react_agent(ollama_instance, tools=tools, checkpointer=memory)
