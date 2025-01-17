@@ -65,6 +65,7 @@ def ask_stuff(base_prompt: str, source: MessageSource, user_id: str) -> str:
     print(f"Original Response from model: {ollama_response}")
     return ollama_response
 
+
 def print_stream(stream):
     message = ""
     for s in stream:
@@ -76,7 +77,8 @@ def print_stream(stream):
     return message.content
 
 
-tools = [be_creative, get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left, search_web, get_current_time]
+tools = [be_creative, get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left, search_web,
+         get_current_time]
 
 ollama_instance = ChatOllama(model=LLAMA_MODEL)
 graph = create_react_agent(ollama_instance, tools=tools, checkpointer=memory)

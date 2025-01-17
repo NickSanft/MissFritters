@@ -13,6 +13,7 @@ import random
 MISTRAL_MODEL = "mistral"
 mistral_instance = ChatOllama(model=MISTRAL_MODEL)
 
+
 @tool(parse_docstring=True)
 def get_current_time():
     """
@@ -33,6 +34,7 @@ def get_current_time():
     print(rfc3339_timestamp)
     return rfc3339_timestamp
 
+
 @tool(parse_docstring=True, return_direct=True)
 def be_creative(prompt: str):
     """
@@ -43,8 +45,8 @@ def be_creative(prompt: str):
     """
     mistral_resp = mistral_instance.invoke(prompt)
     return (f"The below came from Mistral instead of Miss Fritters. I guess it's trying to be creative. \r\n"
-                 f"\r\nPrompt it asked for:\r\n {prompt}"
-                 f"\r\nWhat it got back:\r\n {mistral_resp.content}")
+            f"\r\nPrompt it asked for:\r\n {prompt}"
+            f"\r\nWhat it got back:\r\n {mistral_resp.content}")
 
 
 @tool(parse_docstring=True)
@@ -61,6 +63,7 @@ def search_web(text_to_search: str):
     results = DDGS().text(text_to_search, max_results=5)
     print(results)
     return results
+
 
 @tool(parse_docstring=True)
 def roll_dice(num_dice: int, num_sides: int, user_id: int):
@@ -82,6 +85,7 @@ def roll_dice(num_dice: int, num_sides: int, user_id: int):
     return (f"Here are the results: {user_id}."
             f" {rolls}")
 
+
 @tool(parse_docstring=True, return_direct=True)
 def deck_cards_left(user_id: str) -> str:
     """If the user asks how many cards are left, this will return the number of cards left in their deck.
@@ -90,6 +94,7 @@ def deck_cards_left(user_id: str) -> str:
         user_id: The user_id for the deck
     """
     return deck_of_cards_integration.get_remaining_card_number(user_id)
+
 
 @tool(parse_docstring=True, return_direct=True)
 def deck_reload(user_id: str) -> str:
@@ -100,6 +105,7 @@ def deck_reload(user_id: str) -> str:
     """
     return deck_of_cards_integration.reload_deck(user_id)
 
+
 @tool(parse_docstring=True, return_direct=True)
 def deck_draw_cards(number_of_cards: int, user_id: str) -> str:
     """If someone asks to draw cards, this should be called.
@@ -109,6 +115,7 @@ def deck_draw_cards(number_of_cards: int, user_id: str) -> str:
         user_id: The user_id of the deck of cards to draw from.
     """
     return deck_of_cards_integration.draw_cards(number_of_cards, user_id)
+
 
 @tool(parse_docstring=True)
 def get_weather(city: str) -> str:
