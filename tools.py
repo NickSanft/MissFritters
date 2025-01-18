@@ -36,14 +36,15 @@ def get_current_time():
 
 
 @tool(parse_docstring=True, return_direct=True)
-def be_creative(prompt: str):
+def tell_a_story(prompt: str):
     """
     This function uses mistral to generate a creative response for things like telling a story.
 
     Args:
         prompt (str): The prompt to call mistral for a creative response.
     """
-    mistral_resp = mistral_instance.invoke(prompt)
+    inputs = [("system", "You are a ChatBot that receives a prompt and tells a story based off of it."), ("user", prompt)]
+    mistral_resp = mistral_instance.invoke(inputs)
     return (f"The below came from Mistral instead of Miss Fritters. I guess it's trying to be creative. \r\n"
             f"\r\nPrompt it asked for:\r\n {prompt}"
             f"\r\nWhat it got back:\r\n {mistral_resp.content}")

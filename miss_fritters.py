@@ -5,7 +5,7 @@ import re
 
 from message_source import MessageSource
 from tools import get_weather, deck_reload, deck_draw_cards, deck_cards_left, roll_dice, search_web, get_current_time, \
-    be_creative
+    tell_a_story
 
 LLAMA_MODEL = "incept5/llama3.1-claude"
 
@@ -22,7 +22,7 @@ def format_role_description(source: MessageSource, user_id: str) -> str:
         
         get_current_time: returns the current time as an RFC3339 timestamp in US / Central Standard Time.
         
-        be_creative: Only use if someone asks you to be creative, calls mistral to make up something.
+        tell_a_story: Use to tell a story based on the input you provide it.
         
         search_web: Searches the internet for a term and returns the results.
         
@@ -77,7 +77,7 @@ def print_stream(stream):
     return message.content
 
 
-tools = [be_creative, get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left, search_web,
+tools = [tell_a_story, get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left, search_web,
          get_current_time]
 
 ollama_instance = ChatOllama(model=LLAMA_MODEL)
