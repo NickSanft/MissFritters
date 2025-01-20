@@ -1,0 +1,3 @@
+# Modelfile
+FROM incept5/llama3.1-claude
+PARAMETER num_ctx 32768
