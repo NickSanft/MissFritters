@@ -1,3 +1,4 @@
+import ollama
 from langchain_core.tools import tool
 from langchain_ollama import ChatOllama
 
@@ -12,6 +13,30 @@ import random
 
 MISTRAL_MODEL = "mistral"
 mistral_instance = ChatOllama(model=MISTRAL_MODEL)
+
+LLAVA_MODEL = "llava"
+llava_instance = ChatOllama(model=LLAVA_MODEL)
+
+@tool(parse_docstring=True, return_direct=True)
+def describe_image(file_path: str):
+    """
+    Describes an image using llava.
+
+    Args:
+        file_path (str): The filepath of the image to describe.
+    """
+    res = ollama.chat(
+        model="llava",
+        messages=[
+            {
+                'role': 'user',
+                'content': 'Describe this image:',
+                'images': [file_path]
+            }
+        ]
+    )
+    print(res['message']['content'])
+    return res['message']['content']
 
 
 @tool(parse_docstring=True)

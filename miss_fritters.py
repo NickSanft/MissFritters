@@ -5,7 +5,7 @@ import re
 
 from message_source import MessageSource
 from tools import get_weather, deck_reload, deck_draw_cards, deck_cards_left, roll_dice, search_web, get_current_time, \
-    tell_a_story
+    tell_a_story, describe_image
 
 LLAMA_MODEL = "incept5/llama3.1-claude"
 
@@ -18,6 +18,8 @@ Role:
     Here are the tools available to you, do not call the tools unless you need to.
 
     get_current_time: returns the current time as an RFC3339 timestamp in US / Central Standard Time.
+    
+    describe_image: Only use this if a file path is provided. Used to describe an image.
 
     tell_a_story: Only use this if the user asks to tell a story.
 
@@ -82,7 +84,7 @@ def print_stream(stream):
 
 
 tools = [tell_a_story, get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left, search_web,
-         get_current_time]
+         get_current_time, describe_image]
 
 ollama_instance = ChatOllama(model=LLAMA_MODEL)
 graph = create_react_agent(ollama_instance, tools=tools, checkpointer=memory)
