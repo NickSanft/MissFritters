@@ -5,7 +5,7 @@ Miss Fritters is currently a test of LLMs using Ollama and Coqui TTS.
 ## Installation
 
 - Download Ollama - https://ollama.com/blog/llama3
-- Run the LLMs you want using Ollama. for all the models I use, run ./modelfiles/run.bat.
+- Run the LLMs you wish to using Ollama. For all the models I use, run ./modelfiles/run.bat for Windows users.
 - Use the package manager [pip](https://pip.pypa.io/en/stable/) to install any dependencies using the requirements.txt file (pip install -r requirements.txt)
 - If you want to use the Simple TTS, just use the SimpleStuffSayer in main.py.
 - If you want to use Advanced TTS instead of the simple, it requires a bit more setup...
