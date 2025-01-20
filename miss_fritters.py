@@ -1,3 +1,5 @@
+import glob
+
 from langchain_ollama import ChatOllama
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
@@ -8,6 +10,7 @@ from tools import get_weather, deck_reload, deck_draw_cards, deck_cards_left, ro
     tell_a_story, describe_image
 
 LLAMA_MODEL = "incept5/llama3.1-claude"
+IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff"]
 
 memory = MemorySaver()
 
@@ -19,7 +22,7 @@ Role:
 
     get_current_time: returns the current time as an RFC3339 timestamp in US / Central Standard Time.
     
-    describe_image: Only use this if a file path is provided. Used to describe an image.
+    describe_image: Only use this if a file path is provided. Used to describe an image. The filepaths you have are: {files}
 
     tell_a_story: Only use this if the user asks to tell a story.
 
@@ -35,6 +38,21 @@ Role:
 
     deck_reload: Shuffles or reloads the deck of cards that is currently active for the user.
 """
+
+def format_system_description(system_description: str) -> str:
+    # List to store all image files
+    images = []
+
+    # Define the image extensions you want to include
+
+
+    # Loop through each image pattern and append matching files
+    for ext in IMAGE_EXTENSIONS:
+        images.extend(glob.glob(f"./input/*{ext}"))
+
+    # Now `images` contains all matching image files
+    print(images)
+    return base_system_description.format(files=images)
 
 
 # Helper function for role description formatting
@@ -61,11 +79,12 @@ def ask_stuff(base_prompt: str, source: MessageSource, user_id: str) -> str:
     # Remove special characters because people love to have underscores in their usernames.
     user_id_clean = re.sub(r'[^a-zA-Z0-9]', '', user_id)
     full_prompt = format_prompt(base_prompt, source, user_id_clean)
-    print(f"Role description: {base_system_description}")
+    full_system_desc = format_system_description(base_system_description)
+    print(f"Role description: {full_system_desc}")
     print(f"Prompt to ask: {full_prompt}")
 
     config = {"configurable": {"thread_id": user_id_clean}}
-    inputs = {"messages": [("system", base_system_description), ("user", full_prompt)]}
+    inputs = {"messages": [("system", full_system_desc), ("user", full_prompt)]}
     ollama_response = print_stream(graph.stream(inputs, config=config, stream_mode="values"))
 
     print(f"Original Response from model: {ollama_response}")

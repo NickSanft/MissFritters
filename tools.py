@@ -36,7 +36,7 @@ def describe_image(file_path: str):
         ]
     )
     print(res['message']['content'])
-    return res['message']['content']
+    return "Llava is looking at picture located in: {} \r\n\r\n{}".format(file_path, res['message']['content'])
 
 
 @tool(parse_docstring=True)

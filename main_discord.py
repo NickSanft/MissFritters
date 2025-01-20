@@ -4,7 +4,7 @@ import discord
 from discord.ext import commands
 
 from main_stt import stuff_sayer
-from miss_fritters import ask_stuff
+from miss_fritters import ask_stuff, IMAGE_EXTENSIONS
 from message_source import MessageSource
 
 command_prefix = "$"
@@ -84,9 +84,10 @@ async def on_message(message):
         split_v1 = str(message.attachments).split("filename='")[1]
         filename = str(split_v1).split("' ")[0]
         filepath = "./input/{}".format(filename)
-        if filename.endswith(".jpg"):
+        if filename.endswith(tuple(IMAGE_EXTENSIONS)):
             await message.attachments[0].save(fp=filepath)  # saves the file
-        print("File saved!")
+            print("File saved!")
+
     else:
         print("There is no attachment")
 
