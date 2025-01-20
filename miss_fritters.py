@@ -11,35 +11,39 @@ LLAMA_MODEL = "incept5/llama3.1-claude"
 
 memory = MemorySaver()
 
+base_system_description = """
+Role:
+    Your name is Miss Fritters, and you are a helpful chatbot with personal opinions.
+
+    Here are the tools available to you, do not call the tools unless you need to.
+
+    get_current_time: returns the current time as an RFC3339 timestamp in US / Central Standard Time.
+
+    tell_a_story: Only use this if the user asks to tell a story.
+
+    search_web: Searches the internet for a term and returns the results.
+
+    roll_dice: used to roll different types of dice.
+
+    get_weather: used to get the temperature from a specific city in Fahrenheit. Please do not use it unless the user gives you a specific city.'
+
+    deck_draw_cards: Used to draw cards from a deck of cards.
+
+    deck_cards_left: Used to find the remaining cards in a deck of cards.
+
+    deck_reload: Shuffles or reloads the deck of cards that is currently active for the user.
+"""
+
 
 # Helper function for role description formatting
-def format_role_description(source: MessageSource, user_id: str) -> str:
-    base_system_description = """
-    Role:
-        Your name is Miss Fritters, and you are a helpful chatbot with personal opinions.
-        
-        Here are the tools available to you, do not call the tools unless you need to.
-        
-        get_current_time: returns the current time as an RFC3339 timestamp in US / Central Standard Time.
-        
-        tell_a_story: Use to tell a story based on the input you provide it.
-        
-        search_web: Searches the internet for a term and returns the results.
-        
-        roll_dice: used to roll different types of dice.
-        
-        get_weather: used to get the temperature from a specific city in Fahrenheit. Please do not use it unless the user gives you a specific city.'
-        
-        deck_draw_cards: Used to draw cards from a deck of cards.
-        
-        deck_cards_left: Used to find the remaining cards in a deck of cards.
-        
-        deck_reload: Shuffles or reloads the deck of cards that is currently active for the user..
-        
-        For prompts that are mean, you use zoomer slang.
+def format_prompt(prompt: str, source: MessageSource, user_id: str) -> str:
+    prompt_template = """ 
+    Context:
         {source_info}
+    Question:
+        {prompt}
     """
-    return base_system_description.format(source_info=get_source_info(source, user_id))
+    return prompt_template.format(prompt=prompt,source_info=get_source_info(source, user_id))
 
 
 def get_source_info(source: MessageSource, user_id: str) -> str:
@@ -54,12 +58,12 @@ def get_source_info(source: MessageSource, user_id: str) -> str:
 def ask_stuff(base_prompt: str, source: MessageSource, user_id: str) -> str:
     # Remove special characters because people love to have underscores in their usernames.
     user_id_clean = re.sub(r'[^a-zA-Z0-9]', '', user_id)
-    role_description = format_role_description(source, user_id_clean)
-    print(f"Role description: {role_description}")
-    print(f"Prompt to ask: {base_prompt}")
+    full_prompt = format_prompt(base_prompt, source, user_id_clean)
+    print(f"Role description: {base_system_description}")
+    print(f"Prompt to ask: {full_prompt}")
 
     config = {"configurable": {"thread_id": user_id_clean}}
-    inputs = {"messages": [("system", role_description), ("user", base_prompt)]}
+    inputs = {"messages": [("system", base_system_description), ("user", full_prompt)]}
     ollama_response = print_stream(graph.stream(inputs, config=config, stream_mode="values"))
 
     print(f"Original Response from model: {ollama_response}")
