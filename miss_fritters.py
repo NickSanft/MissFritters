@@ -39,12 +39,10 @@ Role:
     deck_reload: Shuffles or reloads the deck of cards that is currently active for the user.
 """
 
+
 def format_system_description(system_description: str) -> str:
     # List to store all image files
     images = []
-
-    # Define the image extensions you want to include
-
 
     # Loop through each image pattern and append matching files
     for ext in IMAGE_EXTENSIONS:
@@ -63,7 +61,7 @@ def format_prompt(prompt: str, source: MessageSource, user_id: str) -> str:
     Question:
         {prompt}
     """
-    return prompt_template.format(prompt=prompt,source_info=get_source_info(source, user_id))
+    return prompt_template.format(prompt=prompt, source_info=get_source_info(source, user_id))
 
 
 def get_source_info(source: MessageSource, user_id: str) -> str:
