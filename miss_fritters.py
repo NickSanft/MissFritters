@@ -40,7 +40,7 @@ Role:
 """
 
 
-def format_system_description(system_description: str) -> str:
+def format_system_description() -> str:
     # List to store all image files
     images = []
 
@@ -77,7 +77,7 @@ def ask_stuff(base_prompt: str, source: MessageSource, user_id: str) -> str:
     # Remove special characters because people love to have underscores in their usernames.
     user_id_clean = re.sub(r'[^a-zA-Z0-9]', '', user_id)
     full_prompt = format_prompt(base_prompt, source, user_id_clean)
-    full_system_desc = format_system_description(base_system_description)
+    full_system_desc = format_system_description()
     print(f"Role description: {full_system_desc}")
     print(f"Prompt to ask: {full_prompt}")
 
