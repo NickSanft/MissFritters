@@ -92,7 +92,7 @@ def search_web(text_to_search: str):
 
 
 @tool(parse_docstring=True)
-def roll_dice(num_dice: int, num_sides: int, user_id: int):
+def roll_dice(num_dice: int, num_sides: int, user_id: str):
     """
     Rolls a specified number of dice, each with a specified number of sides.
 
