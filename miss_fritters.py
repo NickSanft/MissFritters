@@ -9,7 +9,7 @@ from message_source import MessageSource
 from tools import get_weather, deck_reload, deck_draw_cards, deck_cards_left, roll_dice, search_web, get_current_time, \
     tell_a_story, describe_image
 
-LLAMA_MODEL = "incept5/llama3.1-claude"
+LLAMA_MODEL = "llama3.2"
 IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff"]
 
 memory = MemorySaver()
