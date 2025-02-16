@@ -17,6 +17,9 @@ mistral_instance = ChatOllama(model=MISTRAL_MODEL)
 LLAVA_MODEL = "llava"
 llava_instance = ChatOllama(model=LLAVA_MODEL)
 
+CODE_MODEL = "codellama"
+code_instance = ChatOllama(model=CODE_MODEL)
+
 
 @tool(parse_docstring=True, return_direct=True)
 def describe_image(file_path: str):
@@ -60,6 +63,20 @@ def get_current_time():
     print(rfc3339_timestamp)
     return rfc3339_timestamp
 
+@tool(parse_docstring=True, return_direct=True)
+def help_with_coding(prompt: str):
+    """
+    This function uses codellama to help assist with writing, testing, or explaining code.
+
+    Args:
+        prompt (str): The prompt to ask codellama to help with coding
+    """
+    inputs = [("system", "You are a ChatBot that receives a prompt to assist with writing, testing, or explaining code."),
+              ("user", prompt)]
+    code_resp = code_instance.invoke(inputs)
+    return (f"The below came from CodeLlama instead of Miss Fritters. It is trying to tell you help with code stuff. \r\n"
+            f"\r\nPrompt it asked for:\r\n {prompt}"
+            f"\r\nWhat it got back:\r\n {code_resp.content}")
 
 @tool(parse_docstring=True, return_direct=True)
 def tell_a_story(prompt: str):

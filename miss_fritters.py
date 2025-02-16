@@ -12,7 +12,7 @@ from langgraph.store.memory import InMemoryStore
 
 from message_source import MessageSource
 from tools import get_weather, deck_reload, deck_draw_cards, deck_cards_left, roll_dice, search_web, get_current_time, \
-    tell_a_story, describe_image
+    tell_a_story, describe_image, help_with_coding
 
 PERSISTENT = True
 LLAMA_MODEL = "llama3.2"
@@ -49,6 +49,8 @@ Role:
     tell_a_story: Only use this if the user asks you to tell a story.  
     
     describe_image: Only use this if a file path is provided. Used to describe an image. The filepaths you have are: {files}
+    
+    help_with_coding: Only use this to help a user with coding.
 """
 
 
@@ -143,7 +145,7 @@ def add_memory(user_id: str, memory_key: str, memory_to_store: str):
     return "Added memory for {}: {}".format(memory_key, memory_to_store)
 
 
-tools = [tell_a_story, describe_image, search_memories, add_memory, get_weather, roll_dice, deck_reload,
+tools = [tell_a_story, describe_image, help_with_coding, search_memories, add_memory, get_weather, roll_dice, deck_reload,
          deck_draw_cards, deck_cards_left, search_web, get_current_time]
 
 if PERSISTENT:
