@@ -28,7 +28,7 @@ Role:
 
     Here are the tools available to you, do not call these tools unless you need to.
 
-    search_memories: can be provided a query to print a list of memories for a given user.
+    search_memories: Use only to search for specific memories for a given user.
     
     add_memory: can be used to add a memory if requested by the user.
     
@@ -44,11 +44,13 @@ Role:
 
     deck_cards_left: Used to find the remaining cards in a deck of cards.
 
-    deck_reload: Shuffles or reloads the deck of cards that is currently active for the user.    
+    deck_reload: Shuffles or reloads the deck of cards that is currently active for the user.
+    
+    tell_a_story: Only use this if the user asks you to tell a story.  
+    
+    describe_image: Only use this if a file path is provided. Used to describe an image. The filepaths you have are: {files}
 """
 
-#    describe_image: Only use this if a file path is provided. Used to describe an image. The filepaths you have are: {files}
-#    tell_a_story: Only use this if the user asks to tell a story.
 
 def format_system_description() -> str:
     # List to store all image files
@@ -141,8 +143,8 @@ def add_memory(user_id: str, memory_key: str, memory_to_store: str):
     return "Added memory for {}: {}".format(memory_key, memory_to_store)
 
 
-# tools = [tell_a_story, describe_image]
-tools = [search_memories, add_memory, get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left, search_web, get_current_time]
+tools = [tell_a_story, describe_image, search_memories, add_memory, get_weather, roll_dice, deck_reload,
+         deck_draw_cards, deck_cards_left, search_web, get_current_time]
 
 if PERSISTENT:
     db_name = "chat_history.db"

@@ -17,10 +17,11 @@ mistral_instance = ChatOllama(model=MISTRAL_MODEL)
 LLAVA_MODEL = "llava"
 llava_instance = ChatOllama(model=LLAVA_MODEL)
 
+
 @tool(parse_docstring=True, return_direct=True)
 def describe_image(file_path: str):
     """
-    Describes an image using llava.
+    Use only to describes an existing image using llava.
 
     Args:
         file_path (str): The filepath of the image to describe.
@@ -63,14 +64,15 @@ def get_current_time():
 @tool(parse_docstring=True, return_direct=True)
 def tell_a_story(prompt: str):
     """
-    This function uses mistral to generate a creative response for things like telling a story.
+    This function uses mistral to tell a story based on a prompt.
 
     Args:
-        prompt (str): The prompt to call mistral for a creative response.
+        prompt (str): The prompt to call mistral to tell a story.
     """
-    inputs = [("system", "You are a ChatBot that receives a prompt and tells a story based off of it."), ("user", prompt)]
+    inputs = [("system", "You are a ChatBot that receives a prompt and tells a story based off of it."),
+              ("user", prompt)]
     mistral_resp = mistral_instance.invoke(inputs)
-    return (f"The below came from Mistral instead of Miss Fritters. I guess it's trying to be creative. \r\n"
+    return (f"The below came from Mistral instead of Miss Fritters. It is trying to tell you a story. \r\n"
             f"\r\nPrompt it asked for:\r\n {prompt}"
             f"\r\nWhat it got back:\r\n {mistral_resp.content}")
 
