@@ -31,8 +31,24 @@ Role:
     search_memories: can be provided a query to print a list of memories for a given user.
     
     add_memory: can be used to add a memory if requested by the user.
+    
+    get_current_time: returns the current time as an RFC3339 timestamp in US / Central Standard Time.
+
+    search_web: Searches the internet for a term and returns the results. Use this if you are unsure what the user is asking.
+
+    roll_dice: used to roll different types of dice.
+
+    get_weather: used to get the temperature from a specific city in Fahrenheit. Please do not use it unless the user gives you a specific city.'
+
+    deck_draw_cards: Used to draw cards from a deck of cards.
+
+    deck_cards_left: Used to find the remaining cards in a deck of cards.
+
+    deck_reload: Shuffles or reloads the deck of cards that is currently active for the user.    
 """
 
+#    describe_image: Only use this if a file path is provided. Used to describe an image. The filepaths you have are: {files}
+#    tell_a_story: Only use this if the user asks to tell a story.
 
 def format_system_description() -> str:
     # List to store all image files
@@ -125,8 +141,8 @@ def add_memory(user_id: str, memory_key: str, memory_to_store: str):
     return "Added memory for {}: {}".format(memory_key, memory_to_store)
 
 
-# tools = [tell_a_story, get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left, search_web, get_current_time, describe_image]
-tools = [search_memories, add_memory]
+# tools = [tell_a_story, describe_image]
+tools = [search_memories, add_memory, get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left, search_web, get_current_time]
 
 if PERSISTENT:
     db_name = "chat_history.db"
