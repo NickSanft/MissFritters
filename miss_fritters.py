@@ -14,7 +14,6 @@ from sqlite_store import SQLiteStore
 from tools import get_weather, deck_reload, deck_draw_cards, deck_cards_left, roll_dice, search_web, get_current_time, \
     tell_a_story, describe_image, help_with_coding
 
-PERSISTENT = True
 LLAMA_MODEL = "llama3.2"
 IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff"]
 
@@ -141,13 +140,8 @@ def add_memory(user_id: str, memory_key: str, memory_to_store: str):
 tools = [tell_a_story, describe_image, help_with_coding, search_memories, add_memory, get_weather, roll_dice, deck_reload,
          deck_draw_cards, deck_cards_left, search_web, get_current_time]
 
-if PERSISTENT:
-    db_name = "chat_history.db"
-    store = SQLiteStore(db_name)
-else:
-    db_name = ":memory:"
-    store = InMemoryStore()
-
+db_name = "chat_history.db"
+store = SQLiteStore(db_name)
 
 exit_stack = ExitStack()
 checkpointer = exit_stack.enter_context(SqliteSaver.from_conn_string(db_name))
