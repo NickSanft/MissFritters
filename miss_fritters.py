@@ -113,18 +113,13 @@ def print_stream(stream):
 
 
 @tool(parse_docstring=True)
-def search_memories(user_id: str, search_query: str):
+def search_memories(user_id: str):
     """ This function searches for memories made from previous conversations. Return a dict of memories.
 
     Args:
         user_id (str): The id of the user to search the memory for.
-        search_query (str): The query to search memories of previous conversations with the user.
     """
-    search_result = store.search(
-        (user_id, "memories"),
-        query=search_query,
-        limit=3  # Return top 3 matches
-    )
+    search_result = store.search((user_id, "memories"), 30)
     print(f"Search result: {search_result}")
     return str(search_result)
 

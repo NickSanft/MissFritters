@@ -68,15 +68,11 @@ class SQLiteStore(BaseStore[str, Union[str, bytes]]):
         for row in self._execute_query(query, (f"{prefix}%",)):
             yield row[0]
 
-    def search(self, namespace: Tuple[str, ...], query: str, limit: Optional[int] = None) -> List[
+    def search(self, namespace: Tuple[str, ...], limit: int) -> List[
         Tuple[str, Dict[str, Any]]]:
         namespace_str = "/".join(namespace)
-        sql_query = "SELECT key, value FROM store WHERE namespace = ? AND value LIKE ?"
-
-        if limit is not None:
-            sql_query += " LIMIT ?"
-            results = self._execute_query(sql_query, (namespace_str, f"%{query}%", limit))
-        else:
-            results = self._execute_query(sql_query, (namespace_str, f"%{query}%"))
+        sql_query = "SELECT key, value FROM store WHERE namespace = ? LIMIT ?"
+        print(sql_query)
+        results = self._execute_query(sql_query, (namespace_str, limit))
 
         return [(key, json.loads(value)) for key, value in results]
