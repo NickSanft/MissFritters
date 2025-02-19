@@ -1,13 +1,11 @@
 # ===== IMPORTS =====
 import glob
-import uuid
 import re
 from contextlib import ExitStack
 from typing import Literal
 
 from langchain_core.messages import HumanMessage, RemoveMessage
 from langchain_core.runnables import RunnableConfig
-from langchain_core.tools import tool
 from langchain_ollama import ChatOllama
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph, MessagesState
@@ -35,8 +33,6 @@ Role:
     When responding to the user, keep your response to a paragraph or less.
 
     Tools available (use only when necessary):
-    - search_memories: Retrieve specific user memories.
-    - add_memory: Store a user-requested memory.
     - get_current_time: Fetch the current time (US / Central Standard Time).
     - search_web: Internet search for unknown queries.
     - roll_dice: Roll different types of dice.
@@ -44,11 +40,17 @@ Role:
     - deck_draw_cards: Draw cards from a deck.
     - deck_cards_left: Check remaining cards in a deck.
     - deck_reload: Shuffle or reload the current deck.
-    - describe_image: Describe an image if a file path is provided.
-
-    Available image files: {files}
 """
 
+
+# - search_memories: Retrieve specific user memories.
+# - add_memory: Store a user-requested memory.
+
+# Constants for the routing decisions
+CONVERSATION_NODE = "conversation"
+CODING_NODE = "help_with_coding"
+STORY_NODE = "tell_a_story"
+SUMMARIZE_CONVERSATION_NODE = "summarize_conversation"
 
 # ===== UTILITY FUNCTIONS =====
 def get_image_files() -> str:
@@ -109,36 +111,8 @@ def print_stream(stream):
     return message.content
 
 
-# ===== MEMORY TOOLS =====
-@tool(parse_docstring=True)
-def search_memories(user_id: str):
-    """ This function searches for memories made from previous conversations. Return a dict of memories.
-
-    Args:
-        user_id (str): The id of the user to search the memory for.
-    """
-    search_result = store.search((user_id, "memories"), 30)
-    print(f"Search result: {search_result}")
-    return str(search_result)
-
-
-@tool(parse_docstring=True)
-def add_memory(user_id: str, memory_key: str, memory_to_store: str):
-    """ This function stores a memory. Only use this if the user has asked you to.
-
-    Args:
-        user_id (str): The id of the user to store the memory.
-        memory_key (str): A unique identifier for the memory.
-        memory_to_store (str): The memory you wish to store.
-    """
-    memory_dict = {memory_key: memory_to_store}
-    store.put((user_id, "memories"), str(uuid.uuid4()), memory_dict)
-    return "Added memory for {}: {}".format(memory_key, memory_to_store)
-
-
 # ===== SETUP & INITIALIZATION =====
 tools = [
-    search_memories, add_memory,
     get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left,
     search_web, get_current_time
 ]
@@ -161,31 +135,27 @@ class State(MessagesState):
 
 
 def supervisor_routing(state: State, config: RunnableConfig):
-    """Handles general conversation, calling `help_with_coding` if the query is coding-related."""
+    """Handles general conversation, calling appropriate helpers for specific tasks."""
     messages = state["messages"]
     latest_message = messages[-1].content if messages else ""
 
     supervisor_prompt = """
     Your response must always be one of the following options:
-    "conversation" - used by default.
+    "conversation" - default response.
     "help_with_coding" - use if the user is asking for something code-related.
-    "tell_a_story" - use if the user is asking you tell a story.
-
+    "tell_a_story" - use if the user is asking to tell a story.
     Do NOT generate any additional text or explanations.
-    Only return one of the above values as the complete response.
-    Example inputs and expected outputs:
-    - "Can you help me with a Python script to list all values in a dict" → "HELP_WITH_CODING"
-    - "Can you tell me a story about frogs?" → "TELL_A_STORY"
-    - "How are you doing?" → "OTHER"
+    Only return one of the above values.
     """
+
     config_values = {
         "configurable": {
             "user_id": config.get("metadata").get("user_id"),
             "thread_id": config.get("metadata").get("thread_id"),
         }
     }
-    inputs = [("system", supervisor_prompt),
-              ("user", latest_message)]
+
+    inputs = [("system", supervisor_prompt), ("user", latest_message)]
     original_response = ollama_instance.invoke(inputs)
     print("ROUTE DETERMINED: " + original_response.content)
 
@@ -198,20 +168,22 @@ def should_continue(state: State) -> Literal["summarize_conversation", END]:
 
 
 def tell_a_story(state: State, config: RunnableConfig):
+    """Handles requests to tell a story."""
     messages = state["messages"]
     latest_message = messages[-1].content if messages else ""
     inputs = [
-        ("system", "You are a ChatBot that receives a prompt to assist with writing, testing, or explaining code."),
+        ("system", "You are a ChatBot that assists with writing or explaining code."),
         ("user", latest_message)]
     resp = mistral_instance.invoke(inputs)
     return {'messages': [resp]}
 
 
 def help_with_coding(state: State, config: RunnableConfig):
+    """Handles requests for coding help."""
     messages = state["messages"]
     latest_message = messages[-1].content if messages else ""
     inputs = [
-        ("system", "You are a ChatBot that receives a prompt to assist with writing, testing, or explaining code."),
+        ("system", "You are a ChatBot that assists with writing or explaining code."),
         ("user", latest_message)]
     code_resp = code_instance.invoke(inputs)
     return {'messages': [code_resp]}
@@ -246,25 +218,19 @@ def summarize_conversation(state: State, config: RunnableConfig):
 # ===== GRAPH WORKFLOW =====
 workflow = StateGraph(State)
 
-conversation_node_key = "conversation"
-coding_node_key = "help_with_coding"
-story_node_key = "tell_a_story"
-summarize_conversation_key = "summarize_conversation"
-
 # Define nodes
-workflow.add_node(conversation_node_key, create_react_agent(ollama_instance, tools=tools))
-workflow.add_node(summarize_conversation_key, summarize_conversation)
-workflow.add_node(coding_node_key, help_with_coding)
-workflow.add_node(story_node_key, tell_a_story)
+workflow.add_node(CONVERSATION_NODE, create_react_agent(ollama_instance, tools=tools))
+workflow.add_node(SUMMARIZE_CONVERSATION_NODE, summarize_conversation)
+workflow.add_node(CODING_NODE, help_with_coding)
+workflow.add_node(STORY_NODE, tell_a_story)
 
 # Set workflow edges
 workflow.add_conditional_edges(START, supervisor_routing,
-                               {conversation_node_key: conversation_node_key, coding_node_key: coding_node_key,
-                                story_node_key: story_node_key})
-workflow.add_conditional_edges(conversation_node_key, should_continue)
-workflow.add_conditional_edges(coding_node_key, should_continue)
-workflow.add_conditional_edges(story_node_key, should_continue)
-workflow.add_edge(summarize_conversation_key, END)
+                               {CONVERSATION_NODE: CONVERSATION_NODE, CODING_NODE: CODING_NODE, STORY_NODE: STORY_NODE})
+workflow.add_conditional_edges(CONVERSATION_NODE, should_continue)
+workflow.add_conditional_edges(CODING_NODE, should_continue)
+workflow.add_conditional_edges(STORY_NODE, should_continue)
+workflow.add_edge(SUMMARIZE_CONVERSATION_NODE, END)
 
 # Compile graph
 app = workflow.compile(checkpointer=checkpointer, store=store)
@@ -272,3 +238,6 @@ app = workflow.compile(checkpointer=checkpointer, store=store)
 # ask_stuff("Can you write a Python script that prints the numbers 1-20?", MessageSource.DISCORD_TEXT, "hello")
 # ask_stuff("apple pie is my favorite", MessageSource.DISCORD_TEXT, "hello")
 # ask_stuff("Can you tell me a story about pandas?", MessageSource.DISCORD_TEXT, "hello")
+#
+# with open("test.png", "wb") as binary_file:
+#     binary_file.write(app.get_graph().draw_mermaid_png())
