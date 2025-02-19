@@ -42,7 +42,6 @@ Role:
     - deck_reload: Shuffle or reload the current deck.
 """
 
-
 # - search_memories: Retrieve specific user memories.
 # - add_memory: Store a user-requested memory.
 
@@ -51,6 +50,7 @@ CONVERSATION_NODE = "conversation"
 CODING_NODE = "help_with_coding"
 STORY_NODE = "tell_a_story"
 SUMMARIZE_CONVERSATION_NODE = "summarize_conversation"
+
 
 # ===== UTILITY FUNCTIONS =====
 def get_image_files() -> str:
@@ -147,16 +147,8 @@ def supervisor_routing(state: State, config: RunnableConfig):
     Do NOT generate any additional text or explanations.
     Only return one of the above values.
     """
-
-    config_values = {
-        "configurable": {
-            "user_id": config.get("metadata").get("user_id"),
-            "thread_id": config.get("metadata").get("thread_id"),
-        }
-    }
-
     inputs = [("system", supervisor_prompt), ("user", latest_message)]
-    original_response = ollama_instance.invoke(inputs)
+    original_response = ollama_instance.invoke(inputs, config=get_config_values(config))
     print("ROUTE DETERMINED: " + original_response.content)
 
     return original_response.content.lower()
@@ -172,9 +164,9 @@ def tell_a_story(state: State, config: RunnableConfig):
     messages = state["messages"]
     latest_message = messages[-1].content if messages else ""
     inputs = [
-        ("system", "You are a ChatBot that assists with writing or explaining code."),
+        ("system", "You are a ChatBot that receives a prompt and tells a story based off of it."),
         ("user", latest_message)]
-    resp = mistral_instance.invoke(inputs)
+    resp = mistral_instance.invoke(inputs, config=get_config_values(config))
     return {'messages': [resp]}
 
 
@@ -185,7 +177,7 @@ def help_with_coding(state: State, config: RunnableConfig):
     inputs = [
         ("system", "You are a ChatBot that assists with writing or explaining code."),
         ("user", latest_message)]
-    code_resp = code_instance.invoke(inputs)
+    code_resp = code_instance.invoke(inputs, config=get_config_values(config))
     return {'messages': [code_resp]}
 
 
@@ -198,21 +190,23 @@ def summarize_conversation(state: State, config: RunnableConfig):
     )
 
     messages = state["messages"] + [HumanMessage(content=summary_message)]
-    config_values = {
-        "configurable": {
-            "user_id": config.get("metadata").get("user_id"),
-            "thread_id": config.get("metadata").get("thread_id"),
-        }
-    }
-
-    print(config_values)
-    response = ollama_instance.invoke(messages)
+    response = ollama_instance.invoke(messages, config=get_config_values(config))
 
     # Remove all but the last two messages
     delete_messages = [RemoveMessage(id=m.id) for m in state["messages"][:-2]]
 
     print(f"Updated Summary: {response.content}")
     return {"summary": response.content, "messages": delete_messages}
+
+
+def get_config_values(config: RunnableConfig):
+    config_values = {
+        "configurable": {
+            "user_id": config.get("metadata").get("user_id"),
+            "thread_id": config.get("metadata").get("thread_id"),
+        }
+    }
+    return config_values
 
 
 # ===== GRAPH WORKFLOW =====
