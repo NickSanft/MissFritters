@@ -19,7 +19,7 @@ from message_source import MessageSource
 from sqlite_store import SQLiteStore
 from tools import (
     get_weather, deck_reload, deck_draw_cards, deck_cards_left, roll_dice,
-    search_web, get_current_time, tell_a_story, describe_image, help_with_coding
+    search_web, get_current_time
 )
 
 # ===== CONFIGURATION =====
@@ -44,9 +44,7 @@ Role:
     - deck_draw_cards: Draw cards from a deck.
     - deck_cards_left: Check remaining cards in a deck.
     - deck_reload: Shuffle or reload the current deck.
-    - tell_a_story: Tell a story only when requested.
     - describe_image: Describe an image if a file path is provided.
-    - help_with_coding: Assist with coding queries.
 
     Available image files: {files}
 """
@@ -140,7 +138,7 @@ def add_memory(user_id: str, memory_key: str, memory_to_store: str):
 
 # ===== SETUP & INITIALIZATION =====
 tools = [
-    tell_a_story, describe_image, help_with_coding, search_memories, add_memory,
+    search_memories, add_memory,
     get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left,
     search_web, get_current_time
 ]
@@ -150,15 +148,73 @@ exit_stack = ExitStack()
 checkpointer = exit_stack.enter_context(SqliteSaver.from_conn_string(DB_NAME))
 ollama_instance = ChatOllama(model=LLAMA_MODEL)
 
+MISTRAL_MODEL = "mistral"
+mistral_instance = ChatOllama(model=MISTRAL_MODEL)
+
+CODE_MODEL = "codellama"
+code_instance = ChatOllama(model=CODE_MODEL)
+
 
 # ===== STATE MANAGEMENT =====
 class State(MessagesState):
     summary: str
 
 
+def supervisor_routing(state: State, config: RunnableConfig):
+    """Handles general conversation, calling `help_with_coding` if the query is coding-related."""
+    messages = state["messages"]
+    latest_message = messages[-1].content if messages else ""
+
+    supervisor_prompt = """
+    Your response must always be one of the following options:
+    "conversation" - used by default.
+    "help_with_coding" - use if the user is asking for something code-related.
+    "tell_a_story" - use if the user is asking you tell a story.
+
+    Do NOT generate any additional text or explanations.
+    Only return one of the above values as the complete response.
+    Example inputs and expected outputs:
+    - "Can you help me with a Python script to list all values in a dict" → "HELP_WITH_CODING"
+    - "Can you tell me a story about frogs?" → "TELL_A_STORY"
+    - "How are you doing?" → "OTHER"
+    """
+    config_values = {
+        "configurable": {
+            "user_id": config.get("metadata").get("user_id"),
+            "thread_id": config.get("metadata").get("thread_id"),
+        }
+    }
+    inputs = [("system", supervisor_prompt),
+              ("user", latest_message)]
+    original_response = ollama_instance.invoke(inputs)
+    print("ROUTE DETERMINED: " + original_response.content)
+
+    return original_response.content.lower()
+
+
 def should_continue(state: State) -> Literal["summarize_conversation", END]:
     """Decide whether to summarize or end the conversation."""
     return "summarize_conversation" if len(state["messages"]) > 6 else END
+
+
+def tell_a_story(state: State, config: RunnableConfig):
+    messages = state["messages"]
+    latest_message = messages[-1].content if messages else ""
+    inputs = [
+        ("system", "You are a ChatBot that receives a prompt to assist with writing, testing, or explaining code."),
+        ("user", latest_message)]
+    resp = mistral_instance.invoke(inputs)
+    return {'messages': [resp]}
+
+
+def help_with_coding(state: State, config: RunnableConfig):
+    messages = state["messages"]
+    latest_message = messages[-1].content if messages else ""
+    inputs = [
+        ("system", "You are a ChatBot that receives a prompt to assist with writing, testing, or explaining code."),
+        ("user", latest_message)]
+    code_resp = code_instance.invoke(inputs)
+    return {'messages': [code_resp]}
 
 
 def summarize_conversation(state: State, config: RunnableConfig):
@@ -190,14 +246,29 @@ def summarize_conversation(state: State, config: RunnableConfig):
 # ===== GRAPH WORKFLOW =====
 workflow = StateGraph(State)
 
+conversation_node_key = "conversation"
+coding_node_key = "help_with_coding"
+story_node_key = "tell_a_story"
+summarize_conversation_key = "summarize_conversation"
+
 # Define nodes
-workflow.add_node("conversation", create_react_agent(ollama_instance, tools=tools))
-workflow.add_node("summarize_conversation", summarize_conversation)
+workflow.add_node(conversation_node_key, create_react_agent(ollama_instance, tools=tools))
+workflow.add_node(summarize_conversation_key, summarize_conversation)
+workflow.add_node(coding_node_key, help_with_coding)
+workflow.add_node(story_node_key, tell_a_story)
 
 # Set workflow edges
-workflow.add_edge(START, "conversation")
-workflow.add_conditional_edges("conversation", should_continue)
-workflow.add_edge("summarize_conversation", END)
+workflow.add_conditional_edges(START, supervisor_routing,
+                               {conversation_node_key: conversation_node_key, coding_node_key: coding_node_key,
+                                story_node_key: story_node_key})
+workflow.add_conditional_edges(conversation_node_key, should_continue)
+workflow.add_conditional_edges(coding_node_key, should_continue)
+workflow.add_conditional_edges(story_node_key, should_continue)
+workflow.add_edge(summarize_conversation_key, END)
 
 # Compile graph
 app = workflow.compile(checkpointer=checkpointer, store=store)
+
+# ask_stuff("Can you write a Python script that prints the numbers 1-20?", MessageSource.DISCORD_TEXT, "hello")
+# ask_stuff("apple pie is my favorite", MessageSource.DISCORD_TEXT, "hello")
+# ask_stuff("Can you tell me a story about pandas?", MessageSource.DISCORD_TEXT, "hello")
