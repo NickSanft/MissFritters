@@ -141,11 +141,16 @@ def supervisor_routing(state: State, config: RunnableConfig):
 
     supervisor_prompt = """
     Your response must always be one of the following options:
-    "conversation" - default response.
+    "conversation" - used by default.
     "help_with_coding" - use if the user is asking for something code-related.
-    "tell_a_story" - use if the user is asking to tell a story.
+    "tell_a_story" - use if the user is asking you tell a story.
+
     Do NOT generate any additional text or explanations.
-    Only return one of the above values.
+    Only return one of the above values as the complete response.
+    Example inputs and expected outputs:
+    - "Can you help me with a Python script to list all values in a dict" → "HELP_WITH_CODING"
+    - "Can you tell me a story about frogs?" → "TELL_A_STORY"
+    - "How are you doing?" → "OTHER"
     """
     inputs = [("system", supervisor_prompt), ("user", latest_message)]
     original_response = ollama_instance.invoke(inputs, config=get_config_values(config))
