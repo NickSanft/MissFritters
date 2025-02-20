@@ -34,7 +34,7 @@ Role:
 
     Tools available (use only when necessary):
     - get_current_time: Fetch the current time (US / Central Standard Time).
-    - search_web: Internet search for unknown queries.
+    - search_web: Use only to search the internet if you are unsure about something.
     - roll_dice: Roll different types of dice.
     - get_weather: Get the temperature in Fahrenheit for a specific city.
     - deck_draw_cards: Draw cards from a deck.
