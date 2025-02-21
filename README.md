@@ -42,7 +42,7 @@ There are three uses at the moment:
 - Look at miss_fritters.py and read the code as you follow along.
 
 # Mermaid Diagram
-- ![mermaid.png](./mermaid.png)
+- ![mermaid.png](./mermaid_diagram.png)
 
 There are 6 nodes:
 
