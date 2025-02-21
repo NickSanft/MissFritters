@@ -39,7 +39,7 @@ There are three uses at the moment:
 ## How does this work?
 
 - Learning about Edges is important for this - [Check it out here](https://langchain-ai.github.io/langgraph/concepts/low_level/#edges)
-- Look at main.py and read the code as you follow along.
+- Look at miss_fritters.py and read the code as you follow along.
 
 # Mermaid Diagram
 - ![mermaid.png](./mermaid.png)
