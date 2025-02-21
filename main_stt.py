@@ -1,31 +1,95 @@
-from miss_fritters import ask_stuff
+import numpy as np
+import pygame
+import pyaudio
+import wave
+
 from message_source import MessageSource
+from miss_fritters import ask_stuff
 from stt import StuffHearer
 from tts_advanced import AdvancedStuffSayer
 
-stuff_sayer = AdvancedStuffSayer()
+# Parameters
+CHUNK = 1024  # Number of audio samples per frame
+FORMAT = pyaudio.paInt16
+CHANNELS = 1
+RATE = 44100  # Sampling rate
+
+# Initialize Pygame
+pygame.init()
+WIDTH, HEIGHT = 800, 400
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+clock = pygame.time.Clock()
+
+user_id = "local"
+
+# Load Audio File
+def load_audio(filename):
+    wf = wave.open(filename, 'rb')
+    return wf
+
+
+# Audio Stream Setup
+p = pyaudio.PyAudio()
+sayer = AdvancedStuffSayer()
 stuff_hearer = StuffHearer()
-text_only = False
-
-def hear_mode():
-    """Activate the hear mode to interact with the user."""
-    stuff_sayer.say_stuff("Hey, I am Miss Fritters! What would you like to ask?")
-
-    while True:
-        prompt = None
-        while prompt is None:
-            prompt = stuff_hearer.hear_stuff()  # Wait for a valid prompt
-
-        response = ask_stuff(prompt, MessageSource.LOCAL, "0")
-        print("Final response: {}".format(response))
-        if text_only:
-            print(f"Text only mode, response: {response}")
-        else:
-            stuff_sayer.say_stuff(response)
 
 
-if __name__ == '__main__':
-    hear_mode()
-    #stuff_sayer.say_stuff("Hey")
-    #prompt = "Why is the sky blue?"
-    #print(ask_stuff(prompt))
+def visualize_audio(thing_to_say):
+    wf = load_audio(sayer.say_stuff(thing_to_say))
+    stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
+                    channels=wf.getnchannels(),
+                    rate=wf.getframerate(),
+                    output=True)
+    running = True
+
+    while running:
+        screen.fill((0, 0, 0))
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+        data = wf.readframes(CHUNK)
+        if len(data) == 0:
+            break  # Stop when audio file ends
+
+        stream.write(data)
+
+        # Convert audio data to waveform points
+        audio_data = np.frombuffer(data, dtype=np.int16)
+        points = [(x, HEIGHT // 2 + int(audio_data[x % len(audio_data)] * HEIGHT / 65536)) for x in range(WIDTH)]
+        pygame.draw.lines(screen, (0, 255, 0), False, points, 2)
+
+        pygame.display.flip()
+        clock.tick(60)
+
+    stream.stop_stream()
+    stream.close()
+    # Wait for user input with a still sine wave
+    running = True
+    while running:
+        screen.fill((0, 0, 0))
+        points = [(x, HEIGHT // 2 + int(50 * np.sin(2 * np.pi * x / 100))) for x in range(WIDTH)]
+        pygame.draw.lines(screen, (0, 0, 255), False, points, 2)
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return
+            if event.type == pygame.KEYDOWN:  # Wait for user input
+                if event.key == pygame.K_SPACE:  # Press space to play another file
+                    prompt = None
+                    while prompt is None:
+                        prompt = stuff_hearer.hear_stuff()  # Wait for a valid prompt
+                    response = ask_stuff(prompt, MessageSource.LOCAL, user_id)
+                    visualize_audio(response)
+                    return
+
+    pygame.quit()
+    p.terminate()
+
+
+# Run the visualizer with an audio file
+if __name__ == "__main__":
+    visualize_audio("Hello, my name is Miss Fritters. How can I help you today?")
