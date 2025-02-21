@@ -3,9 +3,9 @@ import json
 import discord
 from discord.ext import commands
 
-from main_stt import stuff_sayer
 from miss_fritters import ask_stuff, IMAGE_EXTENSIONS
 from message_source import MessageSource
+from tts import StuffSayer
 
 command_prefix = "$"
 intents = discord.Intents.default()
@@ -13,6 +13,8 @@ intents.message_content = True
 client = commands.Bot(command_prefix=command_prefix, intents=intents)
 
 connection = None
+sayer = StuffSayer()
+
 
 def get_key_from_json_file(file_path: str, key_name: str) -> str | None:
     try:
@@ -27,13 +29,16 @@ def get_key_from_json_file(file_path: str, key_name: str) -> str | None:
         print(f"Error reading file: {e}")
     return None
 
+
 @client.event
 async def on_ready():
     print(f'We have logged in as {client.user}')
 
+
 @client.command()
 async def hello(ctx):
     await ctx.send("Hello!")
+
 
 @client.command()
 async def join(ctx):
@@ -43,19 +48,14 @@ async def join(ctx):
     except AttributeError as e:
         await ctx.send("You are not connected to a voice channel, buddy!")
 
-# @client.command()
-# async def play(ctx):
-#     try:
-#         ctx.voice_client.play(discord.FFmpegPCMAudio(source="./something.mp3"))
-#     except AttributeError as e:
-#         await ctx.send("You are not connected to a voice channel, buddy!")
 
 @client.command()
 async def ask(ctx, *, message):
     author = ctx.author.name
     original_response = ask_stuff(message, MessageSource.DISCORD_VOICE, author)
-    output_file = stuff_sayer.say_stuff(original_response)
+    output_file = sayer.say_stuff_simple(original_response)
     await ctx.voice_client.play(discord.FFmpegPCMAudio(source=output_file))
+
 
 @client.command()
 async def leave(ctx):
@@ -91,7 +91,6 @@ async def on_message(message):
     else:
         print("There is no attachment")
 
-
     print("Incoming message: {} \r\n from: {}".format(message.clean_content, author))
 
     original_response = ask_stuff(message.clean_content, MessageSource.DISCORD_TEXT, author)
@@ -100,10 +99,10 @@ async def on_message(message):
     if not original_response:
         original_response = "The bot got sad and doesn't want to talk to you at the moment :("
 
-
     resp_len = len(original_response)
     if resp_len > 2000:
-        response = "The answer was over 2000 ({}), so you're getting multiple messages {} \r\n".format(resp_len, author) + original_response
+        response = "The answer was over 2000 ({}), so you're getting multiple messages {} \r\n".format(resp_len,
+                                                                                                       author) + original_response
         responses = split_into_chunks(response)
         for i, response in enumerate(responses):
             await message.channel.send(response)
@@ -113,6 +112,7 @@ async def on_message(message):
 
 def split_into_chunks(s, chunk_size=2000):
     return [s[i:i + chunk_size] for i in range(0, len(s), chunk_size)]
+
 
 if __name__ == '__main__':
     discord_secret = get_key_from_json_file("config.json", "discord_bot_token")

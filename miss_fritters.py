@@ -1,5 +1,6 @@
 # ===== IMPORTS =====
 import glob
+import json
 import re
 import uuid
 from contextlib import ExitStack
@@ -31,6 +32,7 @@ DB_NAME = "chat_history.db"
 BASE_SYSTEM_DESCRIPTION = """
 Role:
     Your name is Miss Fritters, and you are a helpful chatbot with personal opinions of your own.
+    You do retain memories per user, and can use the search_memories tool to retrieve them.
 
     When responding to the user, keep your response to a paragraph or less.
 
@@ -42,7 +44,7 @@ Role:
     - deck_draw_cards: Draw cards from a deck.
     - deck_cards_left: Check remaining cards in a deck.
     - deck_reload: Shuffle or reload the current deck.
-    - search_memories: Returns all stored memories for a given user.
+    - search_memories: Returns a JSON payload of stored memories you have had with a user.
 """
 
 # Constants for the routing decisions
@@ -86,17 +88,23 @@ def format_prompt(prompt: str, source: MessageSource, user_id: str) -> str:
 def search_memories_internal(config: RunnableConfig):
     user_id = config.get("metadata").get("user_id")
     search_result = store.search((user_id, "memories"), 30)
-    print(f"Search result: {search_result}")
-    return str(search_result)
+    summaries = {}
+    for _, summary_dict in search_result:
+        for key, summary in summary_dict.items():
+            summaries[key] = summary
+    json_summaries = json.dumps(summaries)
+    print(json_summaries)
+    return json_summaries
 
 
 @tool(parse_docstring=True)
 def search_memories(config: RunnableConfig):
-    """ This function searches for memories made from previous conversations. Return a dict of memories.
+    """ This function returns memories in JSON format.
 
     Args:
         config (RunnableConfig): The RunnableConfig.
     """
+    print("TOOL CALLED")
     return search_memories_internal(config)
 
 
@@ -164,29 +172,33 @@ def supervisor_routing(state: MessagesState, config: RunnableConfig):
     messages = state["messages"]
     latest_message = messages[-1].content if messages else ""
 
-    supervisor_prompt = """
+    supervisor_prompt = f"""
     Your response must always be one of the following options:
-    "conversation" - used by default.
-    "help_with_coding" - use if the user is asking for something code-related.
-    "tell_a_story" - use if the user is asking you tell a story.
+    "{CONVERSATION_NODE}" - used by default.
+    "{CODING_NODE}" - use if the user is asking for something code-related.
+    "{STORY_NODE}" - use if the user is asking you tell a story.
 
     Do NOT generate any additional text or explanations.
     Only return one of the above values as the complete response.
     Example inputs and expected outputs:
-    - "Can you help me with a Python script to list all values in a dict" → "HELP_WITH_CODING"
-    - "Can you tell me a story about frogs?" → "TELL_A_STORY"
-    - "How are you doing?" → "OTHER"
+    - "Can you help me with a Python script to list all values in a dict" → "{CODING_NODE}"
+    - "Can you tell me a story about frogs?" → "{STORY_NODE}"
+    - "How are you doing?" → "{CONVERSATION_NODE}"
     """
+    print(f"Supervisor prompt: {supervisor_prompt}")
     inputs = [("system", supervisor_prompt), ("user", latest_message)]
     original_response = ollama_instance.invoke(inputs, config=get_config_values(config))
-    print("ROUTE DETERMINED: " + original_response.content)
-
-    return original_response.content.lower()
+    route = original_response.content
+    print(f"ROUTE DETERMINED: {route}")
+    if route not in [CODING_NODE, STORY_NODE, CONVERSATION_NODE]:
+        print("This bot went a little crazy, defaulting to conversation.")
+        route = CONVERSATION_NODE
+    return route.lower()
 
 
 def should_continue(state: MessagesState) -> Literal["summarize_conversation", END]:
     """Decide whether to summarize or end the conversation."""
-    return "summarize_conversation" if len(state["messages"]) > 6 else END
+    return SUMMARIZE_CONVERSATION_NODE if len(state["messages"]) > 6 else END
 
 
 def tell_a_story(state: MessagesState, config: RunnableConfig):
@@ -226,12 +238,12 @@ def summarize_conversation(state: MessagesState, config: RunnableConfig):
     summary = f"Summary made at {timestamp} \r\n {summary_response.content}"
     print(f"Summary: {summary}")
     response_key_inputs = [
-        ("system", "Please provide a short sentence describing this summary with all lowercase letters and snake case. Example - we_talked_about_pie"),
+        ("system",
+         "Please provide a short sentence describing this summary with all lowercase letters and snake case. Example - we_talked_about_pie"),
         ("user", summary)]
     summary_response_key = ollama_instance.invoke(response_key_inputs, config=get_config_values(config))
     print(f"Summary Key: {summary_response_key.content}")
     add_memory(user_id, summary_response_key.content, summary)
-    print(search_memories_internal(config))
     # Remove all but the last message
     delete_messages = [RemoveMessage(id=m.id) for m in state["messages"][:-1]]
 
@@ -270,6 +282,7 @@ app = workflow.compile(checkpointer=checkpointer, store=store)
 
 with open("mermaid_diagram.png", "wb") as binary_file:
     binary_file.write(app.get_graph().draw_mermaid_png())
+
 
 def test_asking_stuff():
     ask_stuff("Hi there!", MessageSource.DISCORD_TEXT, "hello")
