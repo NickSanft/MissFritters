@@ -1,11 +1,13 @@
 # ===== IMPORTS =====
 import glob
 import re
+import uuid
 from contextlib import ExitStack
 from typing import Literal
 
 from langchain_core.messages import HumanMessage, RemoveMessage
 from langchain_core.runnables import RunnableConfig
+from langchain_core.tools import tool
 from langchain_ollama import ChatOllama
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph, MessagesState
@@ -17,7 +19,7 @@ from message_source import MessageSource
 from sqlite_store import SQLiteStore
 from tools import (
     get_weather, deck_reload, deck_draw_cards, deck_cards_left, roll_dice,
-    search_web, get_current_time
+    search_web, get_current_time, get_current_time_internal
 )
 
 # ===== CONFIGURATION =====
@@ -40,10 +42,8 @@ Role:
     - deck_draw_cards: Draw cards from a deck.
     - deck_cards_left: Check remaining cards in a deck.
     - deck_reload: Shuffle or reload the current deck.
+    - search_memories: Returns all stored memories for a given user.
 """
-
-# - search_memories: Retrieve specific user memories.
-# - add_memory: Store a user-requested memory.
 
 # Constants for the routing decisions
 CONVERSATION_NODE = "conversation"
@@ -83,6 +83,36 @@ def format_prompt(prompt: str, source: MessageSource, user_id: str) -> str:
     """
 
 
+def search_memories_internal(config: RunnableConfig):
+    user_id = config.get("metadata").get("user_id")
+    search_result = store.search((user_id, "memories"), 30)
+    print(f"Search result: {search_result}")
+    return str(search_result)
+
+
+@tool(parse_docstring=True)
+def search_memories(config: RunnableConfig):
+    """ This function searches for memories made from previous conversations. Return a dict of memories.
+
+    Args:
+        config (RunnableConfig): The RunnableConfig.
+    """
+    return search_memories_internal(config)
+
+
+def add_memory(user_id: str, memory_key: str, memory_to_store: str):
+    """ This function stores a memory. Only use this if the user has asked you to.
+
+    Args:
+        user_id (str): The id of the user to store the memory.
+        memory_key (str): A unique identifier for the memory.
+        memory_to_store (str): The memory you wish to store.
+    """
+    memory_dict = {memory_key: memory_to_store}
+    store.put((user_id, "memories"), str(uuid.uuid4()), memory_dict)
+    return "Added memory for {}: {}".format(memory_key, memory_to_store)
+
+
 # ===== MAIN FUNCTION =====
 def ask_stuff(base_prompt: str, source: MessageSource, user_id: str) -> str:
     """Process user input and return the chatbot's response."""
@@ -114,7 +144,7 @@ def print_stream(stream):
 # ===== SETUP & INITIALIZATION =====
 tools = [
     get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left,
-    search_web, get_current_time
+    search_web, get_current_time, search_memories
 ]
 
 store = SQLiteStore(DB_NAME)
@@ -129,12 +159,7 @@ CODE_MODEL = "codellama"
 code_instance = ChatOllama(model=CODE_MODEL)
 
 
-# ===== STATE MANAGEMENT =====
-class State(MessagesState):
-    summary: str
-
-
-def supervisor_routing(state: State, config: RunnableConfig):
+def supervisor_routing(state: MessagesState, config: RunnableConfig):
     """Handles general conversation, calling appropriate helpers for specific tasks."""
     messages = state["messages"]
     latest_message = messages[-1].content if messages else ""
@@ -159,12 +184,12 @@ def supervisor_routing(state: State, config: RunnableConfig):
     return original_response.content.lower()
 
 
-def should_continue(state: State) -> Literal["summarize_conversation", END]:
+def should_continue(state: MessagesState) -> Literal["summarize_conversation", END]:
     """Decide whether to summarize or end the conversation."""
     return "summarize_conversation" if len(state["messages"]) > 6 else END
 
 
-def tell_a_story(state: State, config: RunnableConfig):
+def tell_a_story(state: MessagesState, config: RunnableConfig):
     """Handles requests to tell a story."""
     messages = state["messages"]
     latest_message = messages[-1].content if messages else ""
@@ -175,8 +200,9 @@ def tell_a_story(state: State, config: RunnableConfig):
     return {'messages': [resp]}
 
 
-def help_with_coding(state: State, config: RunnableConfig):
+def help_with_coding(state: MessagesState, config: RunnableConfig):
     """Handles requests for coding help."""
+    print("In: help_with_coding")
     messages = state["messages"]
     latest_message = messages[-1].content if messages else ""
     inputs = [
@@ -186,22 +212,30 @@ def help_with_coding(state: State, config: RunnableConfig):
     return {'messages': [code_resp]}
 
 
-def summarize_conversation(state: State, config: RunnableConfig):
+def summarize_conversation(state: MessagesState, config: RunnableConfig):
     """Summarize the conversation when it exceeds six messages."""
-    summary = state.get("summary", "")
-    summary_message = (
-        f"Existing Summary: {summary}\n\nExtend it with the new messages above:"
-        if summary else "Summarize the conversation above:"
-    )
+    print("In: summarize_conversation")
+    user_config = get_config_values(config)
+    user_id = config.get("metadata").get("user_id")
+    summary_message_prompt = "Please summarize the conversation above:"
+    messages = state["messages"]
+    messages[-1].content = messages[-1].content + "\r\n I am wrapping up this conversation and starting a new one :)"
+    messages = messages + [HumanMessage(content=summary_message_prompt)]
+    summary_response = ollama_instance.invoke(messages, config=user_config)
+    timestamp = get_current_time_internal()
+    summary = f"Summary made at {timestamp} \r\n {summary_response.content}"
+    print(f"Summary: {summary}")
+    response_key_inputs = [
+        ("system", "Please provide a short sentence describing this summary with all lowercase letters and snake case. Example - we_talked_about_pie"),
+        ("user", summary)]
+    summary_response_key = ollama_instance.invoke(response_key_inputs, config=get_config_values(config))
+    print(f"Summary Key: {summary_response_key.content}")
+    add_memory(user_id, summary_response_key.content, summary)
+    print(search_memories_internal(config))
+    # Remove all but the last message
+    delete_messages = [RemoveMessage(id=m.id) for m in state["messages"][:-1]]
 
-    messages = state["messages"] + [HumanMessage(content=summary_message)]
-    response = ollama_instance.invoke(messages, config=get_config_values(config))
-
-    # Remove all but the last two messages
-    delete_messages = [RemoveMessage(id=m.id) for m in state["messages"][:-2]]
-
-    print(f"Updated Summary: {response.content}")
-    return {"summary": response.content, "messages": delete_messages}
+    return {"messages": delete_messages}
 
 
 def get_config_values(config: RunnableConfig):
@@ -215,7 +249,7 @@ def get_config_values(config: RunnableConfig):
 
 
 # ===== GRAPH WORKFLOW =====
-workflow = StateGraph(State)
+workflow = StateGraph(MessagesState)
 
 # Define nodes
 workflow.add_node(CONVERSATION_NODE, create_react_agent(ollama_instance, tools=tools))
@@ -234,9 +268,14 @@ workflow.add_edge(SUMMARIZE_CONVERSATION_NODE, END)
 # Compile graph
 app = workflow.compile(checkpointer=checkpointer, store=store)
 
-# ask_stuff("Can you write a Python script that prints the numbers 1-20?", MessageSource.DISCORD_TEXT, "hello")
-# ask_stuff("apple pie is my favorite", MessageSource.DISCORD_TEXT, "hello")
-# ask_stuff("Can you tell me a story about pandas?", MessageSource.DISCORD_TEXT, "hello")
-#
-# with open("test.png", "wb") as binary_file:
-#     binary_file.write(app.get_graph().draw_mermaid_png())
+with open("mermaid_diagram.png", "wb") as binary_file:
+    binary_file.write(app.get_graph().draw_mermaid_png())
+
+def test_asking_stuff():
+    ask_stuff("Hi there!", MessageSource.DISCORD_TEXT, "hello")
+    ask_stuff("Apple pie is my favorite, what is your favorite pie?", MessageSource.DISCORD_TEXT, "hello")
+    ask_stuff("What other desserts are similar to pie?", MessageSource.DISCORD_TEXT, "hello")
+    ask_stuff("What pie is the most famous in New York?", MessageSource.DISCORD_TEXT, "hello")
+    ask_stuff("I am tired", MessageSource.DISCORD_TEXT, "hello")
+    ask_stuff("Thanks", MessageSource.DISCORD_TEXT, "hello")
+    ask_stuff("Wow", MessageSource.DISCORD_TEXT, "hello")

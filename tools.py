@@ -44,6 +44,9 @@ def get_current_time():
 
     Example - 2025-01-13T23:11:56.337644-06:00
     """
+    return get_current_time_internal()
+
+def get_current_time_internal():
     # Get the current time in UTC
     utc_now = datetime.now(pytz.utc)
 
@@ -56,7 +59,6 @@ def get_current_time():
 
     print(rfc3339_timestamp)
     return rfc3339_timestamp
-
 
 @tool(parse_docstring=True)
 def search_web(text_to_search: str):
