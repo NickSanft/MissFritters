@@ -1,6 +1,7 @@
 import hashlib
 import os
 import pygame
+import pyttsx3
 import torch
 from TTS.api import TTS
 
@@ -40,15 +41,27 @@ def get_output_file(message: str) -> str:
     return f"output/output_{file_hash}.wav"
 
 
-class AdvancedStuffSayer:
+class StuffSayer:
     # Constants for model and render device
     MODEL_TO_USE = "tts_models/multilingual/multi-dataset/xtts_v2"
     RENDER_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+    simple_engine = pyttsx3.init()
+    simple_engine.setProperty('voice',
+                              "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\TTS_MS_EN-US_ZIRA_11.0")
 
     # Initialize TTS model on the appropriate device
     tts = TTS(MODEL_TO_USE).to(RENDER_DEVICE)
 
-    def say_stuff(self, message: str):
+    def say_stuff_simple(self, message: str):
+        output_file = get_output_file(message)
+        print(f"Generating audio file: {output_file}")
+        if not _file_exists(output_file):
+            self.simple_engine.save_to_file(message, output_file)
+            self.simple_engine.runAndWait()
+            print("Written!")
+        return output_file
+
+    def say_stuff_advanced(self, message: str):
         """
         Generate and play speech from the given message.
         First checks if the audio file already exists. If not, it generates the file.
@@ -64,7 +77,6 @@ class AdvancedStuffSayer:
             print(f"File already exists! Playing: {output_file}")
 
         return output_file
-        # _play_audio(output_file)
 
     def get_available_speakers(self):
         """

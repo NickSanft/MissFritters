@@ -6,7 +6,7 @@ import wave
 from message_source import MessageSource
 from miss_fritters import ask_stuff
 from stt import StuffHearer
-from tts_advanced import AdvancedStuffSayer
+from tts import StuffSayer
 
 # Parameters
 CHUNK = 1024  # Number of audio samples per frame
@@ -22,6 +22,7 @@ clock = pygame.time.Clock()
 
 user_id = "local"
 
+
 # Load Audio File
 def load_audio(filename):
     wf = wave.open(filename, 'rb')
@@ -30,12 +31,12 @@ def load_audio(filename):
 
 # Audio Stream Setup
 p = pyaudio.PyAudio()
-sayer = AdvancedStuffSayer()
+sayer = StuffSayer()
 stuff_hearer = StuffHearer()
 
 
 def visualize_audio(thing_to_say):
-    wf = load_audio(sayer.say_stuff(thing_to_say))
+    wf = load_audio(sayer.say_stuff_simple(thing_to_say))
     stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
                     channels=wf.getnchannels(),
                     rate=wf.getframerate(),
