@@ -187,7 +187,7 @@ def supervisor_routing(state: MessagesState, config: RunnableConfig):
     """
     print(f"Supervisor prompt: {supervisor_prompt}")
     inputs = [("system", supervisor_prompt), ("user", latest_message)]
-    original_response = ollama_instance.invoke(inputs, config=get_config_values(config))
+    original_response = ollama_instance.invoke(inputs)
     route = original_response.content
     print(f"ROUTE DETERMINED: {route}")
     if route not in [CODING_NODE, STORY_NODE, CONVERSATION_NODE]:
@@ -198,7 +198,7 @@ def supervisor_routing(state: MessagesState, config: RunnableConfig):
 
 def should_continue(state: MessagesState) -> Literal["summarize_conversation", END]:
     """Decide whether to summarize or end the conversation."""
-    return SUMMARIZE_CONVERSATION_NODE if len(state["messages"]) > 6 else END
+    return SUMMARIZE_CONVERSATION_NODE if len(state["messages"]) > 15 else END
 
 
 def tell_a_story(state: MessagesState, config: RunnableConfig):
@@ -225,7 +225,6 @@ def help_with_coding(state: MessagesState, config: RunnableConfig):
 
 
 def summarize_conversation(state: MessagesState, config: RunnableConfig):
-    """Summarize the conversation when it exceeds six messages."""
     print("In: summarize_conversation")
     user_config = get_config_values(config)
     user_id = config.get("metadata").get("user_id")
@@ -233,13 +232,13 @@ def summarize_conversation(state: MessagesState, config: RunnableConfig):
     messages = state["messages"]
     messages[-1].content = messages[-1].content + "\r\n I am wrapping up this conversation and starting a new one :)"
     messages = messages + [HumanMessage(content=summary_message_prompt)]
-    summary_response = ollama_instance.invoke(messages, config=user_config)
+    summary_response = ollama_instance.invoke(messages)
     timestamp = get_current_time_internal()
     summary = f"Summary made at {timestamp} \r\n {summary_response.content}"
     print(f"Summary: {summary}")
     response_key_inputs = [
         ("system",
-         "Please provide a short sentence describing this summary with all lowercase letters and snake case. Example - we_talked_about_pie"),
+         "Please provide a short sentence describing this memory starting with the word \"memory\". Example - memory_of_pie"),
         ("user", summary)]
     summary_response_key = ollama_instance.invoke(response_key_inputs, config=get_config_values(config))
     print(f"Summary Key: {summary_response_key.content}")

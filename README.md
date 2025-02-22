@@ -28,7 +28,6 @@ There are three uses at the moment:
 
 - Miss Fritters uses these LLMs:
   - Llama3.2 for chatting
-  - Llava for reading images (requires Discord or images being uploaded by name to input/)
   - Mistral for telling a story.
   - CodeLlama for helping with coding.
 - Has persistent conversation history by default (delete chat_history.db to reset it)
