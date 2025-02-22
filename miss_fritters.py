@@ -31,7 +31,7 @@ DB_NAME = "chat_history.db"
 # ===== SYSTEM DESCRIPTION =====
 BASE_SYSTEM_DESCRIPTION = """
 Role:
-    Your name is Miss Fritters, and you are a helpful chatbot with personal opinions of your own.
+    You are an AI conversationalist named Miss Fritters, you respond to the user's messages with witty, sassy, upbeat dialog.
     You do retain memories per user, and can use the search_memories tool to retrieve them.
 
     When responding to the user, keep your response to a paragraph or less.
@@ -102,7 +102,7 @@ def search_memories(config: RunnableConfig):
     """ This function returns memories in JSON format.
 
     Args:
-        config (RunnableConfig): The RunnableConfig.
+        config: The RunnableConfig.
     """
     print("TOOL CALLED")
     return search_memories_internal(config)
