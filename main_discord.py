@@ -1,10 +1,9 @@
-import json
-
 import discord
 from discord.ext import commands
 
-from miss_fritters import ask_stuff, IMAGE_EXTENSIONS
+from fritters_utils import get_key_from_json_config_file
 from message_source import MessageSource
+from miss_fritters import ask_stuff, IMAGE_EXTENSIONS
 from tts import StuffSayer
 
 command_prefix = "$"
@@ -14,21 +13,6 @@ client = commands.Bot(command_prefix=command_prefix, intents=intents)
 
 connection = None
 sayer = StuffSayer()
-
-
-def get_key_from_json_file(file_path: str, key_name: str) -> str | None:
-    try:
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-            return data.get(key_name)  # Get the key value by key name
-    except FileNotFoundError:
-        print(f"Error: The file at {file_path} was not found.")
-    except json.JSONDecodeError:
-        print(f"Error: The file at {file_path} is not a valid JSON file.")
-    except Exception as e:
-        print(f"Error reading file: {e}")
-    return None
-
 
 @client.event
 async def on_ready():
@@ -115,5 +99,5 @@ def split_into_chunks(s, chunk_size=2000):
 
 
 if __name__ == '__main__':
-    discord_secret = get_key_from_json_file("config.json", "discord_bot_token")
+    discord_secret = get_key_from_json_config_file("discord_bot_token")
     client.run(discord_secret)
