@@ -31,6 +31,7 @@ async def turn_off_lights_internal():
         print(device.features)
         print(device.modules)
         await device.turn_off()
+        await device.update()
 
 async def turn_on_lights_internal():
     found_devices = await Discover.discover(username=get_key_from_json_config_file("kasa_username"),
@@ -43,3 +44,4 @@ async def turn_on_lights_internal():
         print(device.features)
         print(device.modules)
         await device.turn_on()
+        await device.update()

@@ -1,11 +1,14 @@
 # ===== IMPORTS =====
 import glob
 import json
+import random
 import re
 import uuid
 from contextlib import ExitStack
 from typing import Literal
 
+import pytz
+from duckduckgo_search import DDGS
 from langchain_core.messages import HumanMessage, RemoveMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
@@ -14,15 +17,13 @@ from langgraph.constants import START, END
 from langgraph.graph import StateGraph, MessagesState
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.sqlite import SqliteSaver
+from datetime import datetime
 
+import deck_of_cards_integration
 from kasa_integration import turn_off_lights, turn_on_lights
 # ===== LOCAL MODULES =====
 from message_source import MessageSource
 from sqlite_store import SQLiteStore
-from tools import (
-    get_weather, deck_reload, deck_draw_cards, deck_cards_left, roll_dice,
-    search_web, get_current_time, get_current_time_internal
-)
 
 # ===== CONFIGURATION =====
 LLAMA_MODEL = "llama3.2"
@@ -40,7 +41,6 @@ Tools:
     get_current_time: Fetch the current time (US / Central Standard Time).
     search_web: Use only to search the internet if you are unsure about something.
     roll_dice: Roll different types of dice.
-    get_weather: Get the temperature in Fahrenheit for a specific city.
     deck_draw_cards: Draw cards from a deck.
     deck_cards_left: Check remaining cards in a deck.
     deck_reload: Shuffle or reload the current deck.
@@ -100,6 +100,103 @@ def search_memories_internal(config: RunnableConfig):
 
 
 @tool(parse_docstring=True)
+def get_current_time():
+    """
+    Returns the current time as a string in RFC3339 (YYYY-MM-DDTHH:MM:SS) format.
+
+    Example - 2025-01-13T23:11:56.337644-06:00
+    """
+    return get_current_time_internal()
+
+
+def get_current_time_internal():
+    # Get the current time in UTC
+    utc_now = datetime.now(pytz.utc)
+
+    # Convert to CST (Central Standard Time)
+    cst = pytz.timezone('US/Central')
+    cst_now = utc_now.astimezone(cst)
+
+    # Format the timestamp in RFC3339 format
+    rfc3339_timestamp = cst_now.isoformat()
+
+    print(rfc3339_timestamp)
+    return rfc3339_timestamp
+
+
+@tool(parse_docstring=True)
+def search_web(text_to_search: str):
+    """
+    Takes in a string and returns results from the internet.
+
+    Args:
+    text_to_search: The text to search the internet for information.
+
+    Returns:
+    list: A list of dictionaries, each containing string keys and string values representing the search results.
+    """
+    results = DDGS().text(text_to_search, max_results=5)
+    print(results)
+    return results
+
+
+@tool(parse_docstring=True)
+def roll_dice(num_dice: int, num_sides: int, config: RunnableConfig):
+    """
+    Rolls a specified number of dice, each with a specified number of sides.
+
+    Args:
+    num_dice: The number of dice to roll.
+    num_sides: The number of sides on each die.
+    config: The RunnableConfig.
+
+    Returns:
+    list: A list containing the result of each die roll.
+    """
+    user_id = config.get("metadata").get("user_id")
+    if num_dice <= 0 or num_sides <= 0:
+        raise ValueError("Both number of dice and number of sides must be positive integers.")
+
+    rolls = [random.randint(1, num_sides) for _ in range(num_dice)]
+    return (f"Here are the results: {user_id}."
+            f" {rolls}")
+
+
+@tool(parse_docstring=True, return_direct=True)
+def deck_cards_left(config: RunnableConfig) -> str:
+    """If the user asks how many cards are left, this will return the number of cards left in their deck.
+
+    Args:
+        config: The RunnableConfig.
+    """
+    user_id = config.get("metadata").get("user_id")
+    return deck_of_cards_integration.get_remaining_card_number(user_id)
+
+
+@tool(parse_docstring=True, return_direct=True)
+def deck_reload(config: RunnableConfig) -> str:
+    """If a user asks to reload their deck, this should be called.
+
+    Args:
+        config: The RunnableConfig.
+    """
+    user_id = config.get("metadata").get("user_id")
+    return deck_of_cards_integration.reload_deck(user_id)
+
+
+@tool(parse_docstring=True, return_direct=True)
+def deck_draw_cards(number_of_cards: int, config: RunnableConfig) -> str:
+    """If someone asks to draw cards, this should be called.
+
+    Args:
+        number_of_cards: The number of cards to draw.
+        config: The RunnableConfig.
+    """
+    user_id = config.get("metadata").get("user_id")
+    return deck_of_cards_integration.draw_cards(number_of_cards, user_id)
+
+
+@tool(parse_docstring=True)
 def search_memories(config: RunnableConfig):
     """ This function returns memories in JSON format.
 
@@ -153,8 +250,8 @@ def print_stream(stream):
 
 # ===== SETUP & INITIALIZATION =====
 tools = [
-    get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left,
-    search_web, get_current_time, search_memories, turn_off_lights, turn_on_lights
+    roll_dice, deck_reload, deck_draw_cards, deck_cards_left, search_web, get_current_time, search_memories,
+    turn_off_lights, turn_on_lights
 ]
 
 store = SQLiteStore(DB_NAME)

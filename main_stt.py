@@ -78,14 +78,11 @@ def visualize_audio(thing_to_say):
             if event.type == pygame.QUIT:
                 pygame.quit()
                 return
-            if event.type == pygame.KEYDOWN:  # Wait for user input
-                if event.key == pygame.K_SPACE:  # Press space to play another file
-                    prompt = None
-                    while prompt is None:
-                        prompt = stuff_hearer.hear_stuff()  # Wait for a valid prompt
-                    response = ask_stuff(prompt, MessageSource.LOCAL, user_id)
-                    visualize_audio(response)
-                    return
+            prompt = None
+            while prompt is None:
+                prompt = stuff_hearer.hear_stuff()  # Wait for a valid prompt
+            response = ask_stuff(prompt, MessageSource.LOCAL, user_id)
+            visualize_audio(response)
 
     pygame.quit()
     p.terminate()
