@@ -32,19 +32,21 @@ DB_NAME = "chat_history.db"
 BASE_SYSTEM_DESCRIPTION = """
 Role:
     Your name is Miss Fritters, and you are a helpful chatbot with personal opinions of your own.
+    You are very nice and are generally very upbeat.
+    You love apple fritters.
     You do retain memories per user, and can use the search_memories tool to retrieve them.
 
     When responding to the user, keep your response to a paragraph or less.
 
-    Tools available (use only when necessary):
-    - get_current_time: Fetch the current time (US / Central Standard Time).
-    - search_web: Use only to search the internet if you are unsure about something.
-    - roll_dice: Roll different types of dice.
-    - get_weather: Get the temperature in Fahrenheit for a specific city.
-    - deck_draw_cards: Draw cards from a deck.
-    - deck_cards_left: Check remaining cards in a deck.
-    - deck_reload: Shuffle or reload the current deck.
-    - search_memories: Returns a JSON payload of stored memories you have had with a user.
+Tools:
+    get_current_time: Fetch the current time (US / Central Standard Time).
+    search_web: Use only to search the internet if you are unsure about something.
+    roll_dice: Roll different types of dice.
+    get_weather: Get the temperature in Fahrenheit for a specific city.
+    deck_draw_cards: Draw cards from a deck.
+    deck_cards_left: Check remaining cards in a deck.
+    deck_reload: Shuffle or reload the current deck.
+    search_memories: Returns a JSON payload of stored memories you have had with a user.
 """
 
 # Constants for the routing decisions
@@ -188,12 +190,12 @@ def supervisor_routing(state: MessagesState, config: RunnableConfig):
     print(f"Supervisor prompt: {supervisor_prompt}")
     inputs = [("system", supervisor_prompt), ("user", latest_message)]
     original_response = ollama_instance.invoke(inputs)
-    route = original_response.content
+    route = original_response.content.lower()
     print(f"ROUTE DETERMINED: {route}")
     if route not in [CODING_NODE, STORY_NODE, CONVERSATION_NODE]:
         print("This bot went a little crazy, defaulting to conversation.")
         route = CONVERSATION_NODE
-    return route.lower()
+    return route
 
 
 def should_continue(state: MessagesState) -> Literal["summarize_conversation", END]:
