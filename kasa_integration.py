@@ -62,14 +62,14 @@ def change_light_color(color_hue: int, config: RunnableConfig):
         return BAD_USER_MESSAGE
     print(f"Changing Light Color to: {color_hue}")
     asyncio.run(change_light_color_internal(color_hue))
-    return "All lights have been changed to the color: {color_hue}"
-
+    return f"All lights have been changed to the color: {color_hue}"
 
 async def turn_off_lights_internal():
     found_devices = await get_devices()
     for device in found_devices.values():
         await device.turn_off()
         await device.update()
+        print(f"{device.alias} turned off.")
 
 
 async def turn_on_lights_internal():
@@ -77,6 +77,7 @@ async def turn_on_lights_internal():
     for device in found_devices.values():
         await device.turn_on()
         await device.update()
+        print(f"{device.alias} turned on.")
 
 
 async def change_light_color_internal(color_hue: int):
@@ -86,6 +87,7 @@ async def change_light_color_internal(color_hue: int):
         light = device.modules[Module.Light]
         await light.set_hsv(color_hue, 100, 100)
         await device.update()
+        print(f"{device.alias} color changed to {color_hue}.")
 
 
 async def get_devices():
@@ -105,4 +107,4 @@ async def get_device_info():
         print(device.modules)
 
 # asyncio.run(get_device_info())
-# asyncio.run(change_light_color_internal(40))
+# asyncio.run(change_light_color_internal(300))
