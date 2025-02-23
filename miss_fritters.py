@@ -50,7 +50,7 @@ def get_tools_description():
         "search_memories": (search_memories, "Returns a JSON payload of stored memories you have had with a user."),
         "turn_off_lights": (turn_off_lights, "Turns off the lights."),
         "turn_on_lights": (turn_on_lights, "Turns on the lights."),
-        "change_light_color": (change_light_color, "Changes the light color. Accepts a valid ColorHue.")
+        "change_light_color": (change_light_color, "Changes the light color. Accepts a valid hue in degrees.")
     }
     return tool_dict
 

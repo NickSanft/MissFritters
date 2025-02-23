@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 
 import fritters_utils
+import kasa_integration
 from fritters_utils import get_key_from_json_config_file
 from message_source import MessageSource
 from miss_fritters import ask_stuff, IMAGE_EXTENSIONS
@@ -14,6 +15,7 @@ client = commands.Bot(command_prefix=command_prefix, intents=intents)
 
 connection = None
 sayer = StuffSayer()
+
 
 @client.event
 async def on_ready():
@@ -40,6 +42,28 @@ async def ask(ctx, *, message):
     original_response = ask_stuff(message, MessageSource.DISCORD_VOICE, author)
     output_file = sayer.say_stuff_simple(original_response)
     await ctx.voice_client.play(discord.FFmpegPCMAudio(source=output_file))
+
+
+@client.command()
+async def lights(ctx):
+    await ctx.send("Press a button!", view=MyView())
+
+
+class MyView(discord.ui.View):
+    @discord.ui.button(label="Turn on lights", row=0, style=discord.ButtonStyle.primary)
+    async def first_button_callback(self, interaction, button):
+        await interaction.response.send_message("Lights turning on!")
+        await kasa_integration.turn_on_lights_internal()
+
+    @discord.ui.button(label="Turn off lights", row=1, style=discord.ButtonStyle.primary)
+    async def second_button_callback(self, interaction, button):
+        await interaction.response.send_message("Lights turning off!")
+        await kasa_integration.turn_off_lights_internal()
+
+    @discord.ui.button(label="Turn lights purple", row=1, style=discord.ButtonStyle.primary)
+    async def third_button_callback(self, interaction, button):
+        await interaction.response.send_message("Color changing to purple!")
+        await kasa_integration.change_light_color_internal(300)
 
 
 @client.command()
