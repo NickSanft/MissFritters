@@ -1,0 +1,3 @@
+# Modelfile
+FROM hermes3
+PARAMETER num_ctx 32768

@@ -263,13 +263,20 @@ tools = [tool_info[0] for tool_info in get_tools_description().values()]
 store = SQLiteStore(DB_NAME)
 exit_stack = ExitStack()
 checkpointer = exit_stack.enter_context(SqliteSaver.from_conn_string(DB_NAME))
-ollama_instance = ChatOllama(model=LLAMA_MODEL)
+llama_instance = ChatOllama(model=LLAMA_MODEL)
 
 MISTRAL_MODEL = "mistral"
 mistral_instance = ChatOllama(model=MISTRAL_MODEL)
 
 CODE_MODEL = "codellama"
 code_instance = ChatOllama(model=CODE_MODEL)
+
+MISTRAL_ORCA_MODEL = "mistral-openorca"
+orca_instance = ChatOllama(model=MISTRAL_ORCA_MODEL)
+
+HERMES_MODEL = "hermes3"
+hermes_instance = ChatOllama(model=HERMES_MODEL)
+
 
 
 def supervisor_routing(state: MessagesState, config: RunnableConfig):
@@ -292,7 +299,7 @@ def supervisor_routing(state: MessagesState, config: RunnableConfig):
     """
     print(f"Supervisor prompt: {supervisor_prompt}")
     inputs = [("system", supervisor_prompt), ("user", latest_message)]
-    original_response = ollama_instance.invoke(inputs)
+    original_response = llama_instance.invoke(inputs)
     route = original_response.content.lower()
     print(f"ROUTE DETERMINED: {route}")
     if route not in [CODING_NODE, STORY_NODE, CONVERSATION_NODE]:
@@ -313,7 +320,7 @@ def tell_a_story(state: MessagesState, config: RunnableConfig):
     inputs = [
         ("system", "You are a ChatBot that receives a prompt and tells a story based off of it."),
         ("user", latest_message)]
-    resp = mistral_instance.invoke(inputs, config=get_config_values(config))
+    resp = orca_instance.invoke(inputs, config=get_config_values(config))
     return {'messages': [resp]}
 
 
@@ -337,7 +344,7 @@ def summarize_conversation(state: MessagesState, config: RunnableConfig):
     messages = state["messages"]
     messages[-1].content = messages[-1].content + "\r\n I am wrapping up this conversation and starting a new one :)"
     messages = messages + [HumanMessage(content=summary_message_prompt)]
-    summary_response = ollama_instance.invoke(messages)
+    summary_response = llama_instance.invoke(messages)
     timestamp = get_current_time_internal()
     summary = f"Summary made at {timestamp} \r\n {summary_response.content}"
     print(f"Summary: {summary}")
@@ -345,7 +352,7 @@ def summarize_conversation(state: MessagesState, config: RunnableConfig):
         ("system",
          "Please provide a short sentence describing this memory starting with the word \"memory\". Example - memory_of_pie"),
         ("user", summary)]
-    summary_response_key = ollama_instance.invoke(response_key_inputs, config=get_config_values(config))
+    summary_response_key = llama_instance.invoke(response_key_inputs, config=get_config_values(config))
     print(f"Summary Key: {summary_response_key.content}")
     add_memory(user_id, summary_response_key.content, summary)
     # Remove all but the last message
@@ -368,7 +375,7 @@ def get_config_values(config: RunnableConfig):
 workflow = StateGraph(MessagesState)
 
 # Define nodes
-workflow.add_node(CONVERSATION_NODE, create_react_agent(ollama_instance, tools=tools))
+workflow.add_node(CONVERSATION_NODE, create_react_agent(hermes_instance, tools=tools))
 workflow.add_node(SUMMARIZE_CONVERSATION_NODE, summarize_conversation)
 workflow.add_node(CODING_NODE, help_with_coding)
 workflow.add_node(STORY_NODE, tell_a_story)
