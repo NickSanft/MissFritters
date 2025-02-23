@@ -10,6 +10,7 @@ def turn_off_lights():
     Turns off the lights.
     """
     asyncio.run(turn_off_lights_internal())
+    return "The lights have been turned off."
 
 @tool(parse_docstring=True)
 def turn_on_lights():
@@ -17,6 +18,7 @@ def turn_on_lights():
     Turns on the lights.
     """
     asyncio.run(turn_on_lights_internal())
+    return "The lights have been turned on."
 
 async def turn_off_lights_internal():
     found_devices = await Discover.discover(username=get_key_from_json_config_file("kasa_username"),
