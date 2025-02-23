@@ -1,10 +1,10 @@
 # ===== IMPORTS =====
-import glob
 import json
 import random
 import re
 import uuid
 from contextlib import ExitStack
+from datetime import datetime
 from typing import Literal
 
 import pytz
@@ -13,11 +13,10 @@ from langchain_core.messages import HumanMessage, RemoveMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 from langchain_ollama import ChatOllama
+from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph, MessagesState
 from langgraph.prebuilt import create_react_agent
-from langgraph.checkpoint.sqlite import SqliteSaver
-from datetime import datetime
 
 import deck_of_cards_integration
 from kasa_integration import turn_off_lights, turn_on_lights
@@ -30,25 +29,6 @@ LLAMA_MODEL = "llama3.2"
 IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff"]
 DB_NAME = "chat_history.db"
 
-# ===== SYSTEM DESCRIPTION =====
-BASE_SYSTEM_DESCRIPTION = """
-Role:
-    You are an AI conversationalist named Miss Fritters, you respond to the user's messages with witty, sassy, upbeat dialog.
-    You do retain memories per user, and can use the search_memories tool to retrieve them.
-    When responding to the user, keep your response to a paragraph or less.
-
-Tools:
-    get_current_time: Fetch the current time (US / Central Standard Time).
-    search_web: Use only to search the internet if you are unsure about something.
-    roll_dice: Roll different types of dice.
-    deck_draw_cards: Draw cards from a deck.
-    deck_cards_left: Check remaining cards in a deck.
-    deck_reload: Shuffle or reload the current deck.
-    search_memories: Returns a JSON payload of stored memories you have had with a user.
-    turn_off_lights: Turns off the lights.
-    turn_on_lights: Turns on the lights.
-"""
-
 # Constants for the routing decisions
 CONVERSATION_NODE = "conversation"
 CODING_NODE = "help_with_coding"
@@ -56,16 +36,44 @@ STORY_NODE = "tell_a_story"
 SUMMARIZE_CONVERSATION_NODE = "summarize_conversation"
 
 
+def get_tools_description():
+    """
+    Returns a dictionary of available tools and their descriptions.
+    """
+    tool_dict = {
+        "get_current_time": (get_current_time, "Fetch the current time (US / Central Standard Time)."),
+        "search_web": (search_web, "Use only to search the internet if you are unsure about something."),
+        "roll_dice": (roll_dice, "Roll different types of dice."),
+        "deck_draw_cards": (deck_draw_cards, "Draw cards from a deck."),
+        "deck_cards_left": (deck_cards_left, "Check remaining cards in a deck."),
+        "deck_reload": (deck_reload, "Shuffle or reload the current deck."),
+        "search_memories": (search_memories, "Returns a JSON payload of stored memories you have had with a user."),
+        "turn_off_lights": (turn_off_lights, "Turns off the lights."),
+        "turn_on_lights": (turn_on_lights, "Turns on the lights.")
+    }
+    return tool_dict
+
+
 # ===== UTILITY FUNCTIONS =====
-def get_image_files() -> str:
-    """Retrieve available image file paths for chatbot's reference."""
-    images = [file for ext in IMAGE_EXTENSIONS for file in glob.glob(f"./input/*{ext}")]
-    return ", ".join(images)
+def get_system_description():
+    """
+    Format the chatbot's system role description dynamically by including tools from the list.
+    """
+    available_tools = get_tools_description()
+    # Set tools list dynamically
+    tool_descriptions = "".join(
+        [f"    {tool_name}: {tup[1]}\n" for tool_name, tup in available_tools.items()]
+    )
 
+    return f"""
+Role:
+    You are an AI conversationalist named Miss Fritters, you respond to the user's messages with witty, sassy, upbeat dialog.
+    You do retain memories per user, and can use the search_memories tool to retrieve them.
+    When responding to the user, keep your response to a paragraph or less.
 
-def format_system_description() -> str:
-    """Format the chatbot's system role description with available images."""
-    return BASE_SYSTEM_DESCRIPTION.format(files=get_image_files())
+Tools:
+{tool_descriptions}
+    """
 
 
 def get_source_info(source: MessageSource, user_id: str) -> str:
@@ -225,13 +233,13 @@ def ask_stuff(base_prompt: str, source: MessageSource, user_id: str) -> str:
     """Process user input and return the chatbot's response."""
     user_id_clean = re.sub(r'[^a-zA-Z0-9]', '', user_id)  # Clean special characters
     full_prompt = format_prompt(base_prompt, source, user_id_clean)
-    full_system_desc = format_system_description()
 
-    print(f"Role description: {full_system_desc}")
+    system_prompt = get_system_description()
+    print(f"Role description: {system_prompt}")
     print(f"Prompt to ask: {full_prompt}")
 
     config = {"configurable": {"user_id": user_id_clean, "thread_id": user_id_clean}}
-    inputs = {"messages": [("system", full_system_desc), ("user", full_prompt)]}
+    inputs = {"messages": [("system", system_prompt), ("user", full_prompt)]}
 
     return print_stream(app.stream(inputs, config=config, stream_mode="values"))
 
@@ -249,10 +257,7 @@ def print_stream(stream):
 
 
 # ===== SETUP & INITIALIZATION =====
-tools = [
-    roll_dice, deck_reload, deck_draw_cards, deck_cards_left, search_web, get_current_time, search_memories,
-    turn_off_lights, turn_on_lights
-]
+tools = [tool_info[0] for tool_info in get_tools_description().values()]
 
 store = SQLiteStore(DB_NAME)
 exit_stack = ExitStack()
