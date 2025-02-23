@@ -26,6 +26,13 @@ def get_feedback(guess, target):
             feedback[i] = 1  # Correct letter but wrong position
     return tuple(feedback)
 
+# Get possible words based on previous guesses and feedback
+def get_possible_words(guesses, feedbacks):
+    possible_words = word_list.copy()
+    for guess, feedback in zip(guesses, feedbacks):
+        possible_words = [word for word in possible_words if get_feedback(guess, word) == feedback]
+    return possible_words
+
 # Define Deep Q-Network
 class DQN(nn.Module):
     def __init__(self, input_dim, output_dim):
@@ -71,23 +78,38 @@ else:
     # Training loop
     for episode in range(num_episodes):
         target_word = random.choice(word_list)
+        guesses = []
+        feedbacks = []
         state = (0, 0, 0, 0, 0)  # Initial state (no feedback yet)
+        possible_words = word_list.copy()  # Track possible words
         attempts = 0
 
         while attempts < 6:
+            # Check if possible_words is empty, and reset if so
+            if len(possible_words) == 0:
+                possible_words = word_list.copy()  # Reset to full word list if filtered out
+                print("Possible words list is empty, resetting to full word list.")
+
             # Choose action (epsilon-greedy)
             if random.uniform(0, 1) < epsilon:
-                action_index = random.randint(0, len(word_list) - 1)  # Explore
+                action_index = random.randint(0, len(possible_words) - 1)  # Explore
             else:
                 state_tensor = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
                 action_index = torch.argmax(dqn(state_tensor)).item()  # Exploit
 
-            guess = word_list[action_index]
+            # Ensure the action index is valid
+            action_index = min(action_index, len(possible_words) - 1)
+
+            guess = possible_words[action_index]
             feedback = get_feedback(guess, target_word)
-            reward = sum(feedback)  # More correct letters = higher reward
+            reward = feedback.count(2)  # Reward based on correct letters
+
+            # Update possible words based on feedback
+            possible_words = get_possible_words(guesses + [guess], feedbacks + [feedback])
+            next_state = tuple(feedback)  # Next state is feedback for simplicity
 
             # Store experience in memory
-            memory.append((state, action_index, reward, feedback))
+            memory.append((state, action_index, reward, next_state))
 
             # Train on minibatch
             if len(memory) >= batch_size:
@@ -109,7 +131,9 @@ else:
                 optimizer.step()
 
             # Move to next state
-            state = feedback
+            state = next_state
+            guesses.append(guess)
+            feedbacks.append(feedback)
             attempts += 1
 
         # Decay epsilon
@@ -128,12 +152,16 @@ else:
 # Function to play a Wordle game with the trained model
 def play_wordle(target_word, game_number=1345):
     state = (0, 0, 0, 0, 0)
+    guesses = []
+    feedbacks = []
     print(f"Wordle {game_number}")
 
     for attempt in range(6):
+        # Select action based on epsilon-greedy strategy
         state_tensor = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
         action_index = torch.argmax(dqn(state_tensor)).item()
         guess = word_list[action_index]
+        print(guess)
         feedback = get_feedback(guess, target_word)
 
         # Convert feedback to colored emojis
@@ -144,7 +172,9 @@ def play_wordle(target_word, game_number=1345):
             print(f"{attempt+1}/6*")
             print("Word guessed correctly!")
             return
-        state = feedback
+        state = feedback  # Update the state to the feedback
+        guesses.append(guess)
+        feedbacks.append(feedback)
 
     print("X/6")  # If the AI fails to guess in 6 attempts
     print("Failed to guess the word.")
