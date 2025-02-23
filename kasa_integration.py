@@ -84,10 +84,13 @@ async def change_light_color_internal(color_hue: int):
     found_devices = await get_devices()
     for device in found_devices.values():
         await device.update()
-        light = device.modules[Module.Light]
-        await light.set_hsv(color_hue, 100, 100)
-        await device.update()
-        print(f"{device.alias} color changed to {color_hue}.")
+        if device.is_on:
+            light = device.modules[Module.Light]
+            await light.set_hsv(color_hue, 100, 100)
+            await device.update()
+            print(f"{device.alias} color changed to {color_hue}.")
+        else:
+            print(f"{device.alias} is off, not changing it.")
 
 
 async def get_devices():
