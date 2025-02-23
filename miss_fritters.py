@@ -19,7 +19,7 @@ from langgraph.graph import StateGraph, MessagesState
 from langgraph.prebuilt import create_react_agent
 
 import deck_of_cards_integration
-from kasa_integration import turn_off_lights, turn_on_lights
+from kasa_integration import turn_off_lights, turn_on_lights, change_light_color
 # ===== LOCAL MODULES =====
 from message_source import MessageSource
 from sqlite_store import SQLiteStore
@@ -49,7 +49,8 @@ def get_tools_description():
         "deck_reload": (deck_reload, "Shuffle or reload the current deck."),
         "search_memories": (search_memories, "Returns a JSON payload of stored memories you have had with a user."),
         "turn_off_lights": (turn_off_lights, "Turns off the lights."),
-        "turn_on_lights": (turn_on_lights, "Turns on the lights.")
+        "turn_on_lights": (turn_on_lights, "Turns on the lights."),
+        "change_light_color": (change_light_color, "Changes the light color. Accepts a valid ColorHue.")
     }
     return tool_dict
 
