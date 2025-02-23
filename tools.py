@@ -41,7 +41,7 @@ def search_web(text_to_search: str):
     Takes in a string and returns results from the internet.
 
     Args:
-    text_to_search (str): The text to search the internet for information.
+    text_to_search: The text to search the internet for information.
 
     Returns:
     list: A list of dictionaries, each containing string keys and string values representing the search results.
@@ -57,9 +57,9 @@ def roll_dice(num_dice: int, num_sides: int, config: RunnableConfig):
     Rolls a specified number of dice, each with a specified number of sides.
 
     Args:
-    num_dice (int): The number of dice to roll.
-    num_sides (int): The number of sides on each die.
-    config (RunnableConfig): The RunnableConfig.
+    num_dice: The number of dice to roll.
+    num_sides: The number of sides on each die.
+    config: The RunnableConfig.
 
     Returns:
     list: A list containing the result of each die roll.
@@ -78,7 +78,7 @@ def deck_cards_left(config: RunnableConfig) -> str:
     """If the user asks how many cards are left, this will return the number of cards left in their deck.
 
     Args:
-        config (RunnableConfig): The RunnableConfig.
+        config: The RunnableConfig.
     """
     user_id = config.get("metadata").get("user_id")
     return deck_of_cards_integration.get_remaining_card_number(user_id)
@@ -89,7 +89,7 @@ def deck_reload(config: RunnableConfig) -> str:
     """If a user asks to reload their deck, this should be called.
 
     Args:
-        config (RunnableConfig): The RunnableConfig.
+        config: The RunnableConfig.
     """
     user_id = config.get("metadata").get("user_id")
     return deck_of_cards_integration.reload_deck(user_id)
@@ -101,7 +101,7 @@ def deck_draw_cards(number_of_cards: int, config: RunnableConfig) -> str:
 
     Args:
         number_of_cards: The number of cards to draw.
-        config (RunnableConfig): The RunnableConfig.
+        config: The RunnableConfig.
     """
     user_id = config.get("metadata").get("user_id")
     return deck_of_cards_integration.draw_cards(number_of_cards, user_id)
@@ -113,6 +113,6 @@ def get_weather(city: str) -> str:
     Do not use this function if the user did not specify a city!
 
     Args:
-        city (str): The name of the city. Must have a legitimate city name.
+        city: The name of the city. Must have a legitimate city name.
     """
     return weather_integration.get_weather(city)
