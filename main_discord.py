@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 
+import fritters_utils
 from fritters_utils import get_key_from_json_config_file
 from message_source import MessageSource
 from miss_fritters import ask_stuff, IMAGE_EXTENSIONS
@@ -99,5 +100,5 @@ def split_into_chunks(s, chunk_size=2000):
 
 
 if __name__ == '__main__':
-    discord_secret = get_key_from_json_config_file("discord_bot_token")
+    discord_secret = get_key_from_json_config_file(fritters_utils.DISCORD_KEY)
     client.run(discord_secret)
