@@ -20,7 +20,6 @@ There are three uses at the moment:
 
 - main_discord: Uses a Discord app, only requires a config.json file in the root directory with a valid token in a discord_bot_token key.
   - Has \$join, \$ask, and \$leave commands to have it join a Discord call and use TTS.
-  - Images work, but at the moment you will need to indicate to the bot the file by name.
 - main_cli: Your standard command-line in a loop.
 - main_stt: An endless loop of listening for user input via voice and responding.
 
@@ -71,7 +70,7 @@ Coding example with no summary flow:
 - The prompt then goes to the Coding node
   - The prompt is processed by the llm in the node and returns the result
 - The number of messages is checked
-  - Since it is six or less, it goes to the End node.
+  - Since it is 15 or less, it goes to the End node.
 - This then moves to the End node, ending the graph.
 - The user gets their response.
 
@@ -83,7 +82,7 @@ Conversation example flow:
 - The prompt then goes to the Conversation node
   - The prompt is processed by the llm in the node and returns the result
 - The number of messages is checked
-  - Since it is greater than six, it goes to the Conversation Summary node.
+  - Since it is greater than 15, it goes to the Conversation Summary node.
 - The prompt then goes to the Conversation Summary node
   - This node summarizes the conversation and puts it into the store
   - It then deletes all messages except the response to the user.
