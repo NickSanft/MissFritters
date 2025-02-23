@@ -15,6 +15,7 @@ from langgraph.graph import StateGraph, MessagesState
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.sqlite import SqliteSaver
 
+from kasa_integration import turn_off_lights, turn_on_lights
 # ===== LOCAL MODULES =====
 from message_source import MessageSource
 from sqlite_store import SQLiteStore
@@ -44,6 +45,8 @@ Tools:
     deck_cards_left: Check remaining cards in a deck.
     deck_reload: Shuffle or reload the current deck.
     search_memories: Returns a JSON payload of stored memories you have had with a user.
+    turn_off_lights: Turns off the lights.
+    turn_on_lights: Turns on the lights.
 """
 
 # Constants for the routing decisions
@@ -151,7 +154,7 @@ def print_stream(stream):
 # ===== SETUP & INITIALIZATION =====
 tools = [
     get_weather, roll_dice, deck_reload, deck_draw_cards, deck_cards_left,
-    search_web, get_current_time, search_memories
+    search_web, get_current_time, search_memories, turn_off_lights, turn_on_lights
 ]
 
 store = SQLiteStore(DB_NAME)
