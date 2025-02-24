@@ -149,30 +149,44 @@ else:
     torch.save(dqn.state_dict(), model_path)
     print("Training completed! Model saved.")
 
-# Function to play a Wordle game with the trained model
 def play_wordle(target_word, game_number=1345):
-    state = np.zeros(5)  # Reset state to an array of zeros
+    state = np.zeros(5)  # Initial state (no feedback yet)
     guesses = []
     feedbacks = []
     print(f"Wordle {game_number}")
+
+    # Keep track of possible words based on feedback
+    possible_words = word_list.copy()
 
     for attempt in range(6):
         # Select action based on epsilon-greedy strategy
         state_tensor = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
         action_index = torch.argmax(dqn(state_tensor)).item()
-        guess = word_list[action_index]
-        print(guess)
+
+        # Ensure the action is within the valid range
+        action_index = min(action_index, len(possible_words) - 1)
+
+        guess = possible_words[action_index]
+        print(f"Guess {attempt + 1}: {guess}")
+
         feedback = get_feedback(guess, target_word)
 
         # Convert feedback to colored emojis
         emoji_feedback = "".join(["🟩" if f == 2 else "🟨" if f == 1 else "⬛" for f in feedback])
         print(emoji_feedback)
 
-        if feedback == (2, 2, 2, 2, 2):
-            print(f"{attempt+1}/6*")
-            print("Word guessed correctly!")
+
+        if feedback == (2, 2, 2, 2, 2):  # All letters are correct
+            print(f"Word guessed correctly in {attempt + 1}/6!")
             return
-        state = np.array([f for f in feedback])  # Update state based on feedback
+
+        # Update the possible words list based on feedback
+        possible_words = get_possible_words(guesses + [guess], feedbacks + [feedback])
+
+        # Update state with the feedback of the current guess
+        state = np.array([f for f in feedback])
+
+        # Keep track of guesses and feedbacks for future decisions
         guesses.append(guess)
         feedbacks.append(feedback)
 
