@@ -176,6 +176,7 @@ def play_wordle_internal(target_word, game_number=1345):
         action_index = min(action_index, len(possible_words) - 1)
 
         guess = possible_words[action_index]
+        print(f"Guess: {guess}")
 
         feedback = get_feedback(guess, target_word)
 
