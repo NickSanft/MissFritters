@@ -7,44 +7,64 @@ from collections import deque
 from sklearn.feature_extraction.text import CountVectorizer
 import os
 
-# Load the full Wordle dataset
+# Load the full Wordle dataset from file
 with open("wordle_words.txt", "r") as f:
-    word_list = [line.strip() for line in f.readlines() if len(line.strip()) == 5]
+    word_list = [line.strip() for line in f.readlines() if len(line.strip()) == 5]  # Ensure only 5-letter words
 
-# Convert words into vector representations
+# Convert words into vector representations using character counts
 vectorizer = CountVectorizer(analyzer="char", ngram_range=(1, 1))
-X_words = vectorizer.fit_transform(word_list).toarray()
-word_to_index = {word: i for i, word in enumerate(word_list)}
+X_words = vectorizer.fit_transform(word_list).toarray()  # Convert words into numerical format
+word_to_index = {word: i for i, word in enumerate(word_list)}  # Map words to indices
 
 
-# Wordle feedback function
+# Function to compute Wordle-style feedback for a given guess
 def get_feedback(guess, target):
+    """
+    Generates feedback for the guessed word compared to the target word.
+    - 2 (🟩): Letter is correct and in the correct position.
+    - 1 (🟨): Letter is correct but in the wrong position.
+    - 0 (⬛): Letter is not in the target word.
+    """
     feedback = [0] * 5
     for i, (g, t) in enumerate(zip(guess, target)):
         if g == t:
-            feedback[i] = 2  # Correct letter & position
+            feedback[i] = 2  # Correct letter in correct position
         elif g in target:
-            feedback[i] = 1  # Correct letter but wrong position
+            feedback[i] = 1  # Correct letter in wrong position
     return tuple(feedback)
 
 
-# Get possible words based on previous guesses and feedback
+# Function to filter possible words based on previous guesses and feedback
 def get_possible_words(guesses, feedbacks):
+    """
+    Narrows down possible words based on previous guesses and received feedback.
+    Only words that match the provided feedback survive.
+    """
     possible_words = word_list.copy()
     for guess, feedback in zip(guesses, feedbacks):
         possible_words = [word for word in possible_words if get_feedback(guess, word) == feedback]
     return possible_words
 
 
-# Define Deep Q-Network
+# Define Deep Q-Network (DQN) architecture
 class DQN(nn.Module):
     def __init__(self, input_dim, output_dim):
+        """
+        Defines a Deep Q-Network with three fully connected layers.
+        - input_dim: Number of input features (5 in this case, corresponding to feedback states).
+        - output_dim: Number of possible actions (i.e., number of words in word_list).
+        """
         super(DQN, self).__init__()
         self.fc1 = nn.Linear(input_dim, 256)
         self.fc2 = nn.Linear(256, 256)
         self.fc3 = nn.Linear(256, output_dim)
 
     def forward(self, x):
+        """
+        Forward pass through the neural network.
+        Uses ReLU activation for the hidden layers.
+        Outputs Q-values for all possible words.
+        """
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
         return self.fc3(x)  # Q-values for each action
@@ -52,18 +72,18 @@ class DQN(nn.Module):
 
 # Training parameters
 learning_rate = 0.001
-gamma = 0.9
-epsilon = 1.0
-epsilon_decay = 0.999  # Slower epsilon decay for better exploration
-epsilon_min = 0.1
-batch_size = 64
-memory_size = 5000
-num_episodes = 5000
+gamma = 0.9  # Discount factor for future rewards
+epsilon = 1.0  # Exploration rate (starts high and decays)
+epsilon_decay = 0.999  # Decay rate for epsilon to encourage exploitation
+epsilon_min = 0.1  # Minimum epsilon value
+batch_size = 64  # Number of experiences per training step
+memory_size = 5000  # Size of experience replay memory
+num_episodes = 5000  # Total number of training episodes
 save_interval = 1000  # Save model every 1000 episodes
-model_path = "wordle_dqn_model.pth"
+model_path = "wordle_dqn_model.pth"  # Path to save/load the model
 
 # Initialize DQN
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # Use GPU if available
 dqn = DQN(input_dim=5, output_dim=len(word_list)).to(device)
 optimizer = optim.Adam(dqn.parameters(), lr=learning_rate)
 loss_fn = nn.MSELoss()
@@ -71,7 +91,7 @@ loss_fn = nn.MSELoss()
 # Experience Replay Memory
 memory = deque(maxlen=memory_size)
 
-# Check if a saved model exists
+# Load pre-trained model if it exists
 if os.path.exists(model_path):
     dqn.load_state_dict(torch.load(model_path))
     dqn.eval()  # Set to evaluation mode
@@ -81,41 +101,41 @@ else:
 
     # Training loop
     for episode in range(num_episodes):
-        target_word = random.choice(word_list)
+        target_word = random.choice(word_list)  # Select a random target word
         guesses = []
         feedbacks = []
-        possible_words = word_list.copy()  # Track possible words
+        possible_words = word_list.copy()
         attempts = 0
-        state = np.zeros(5)  # State as a vector of zeros, for simplicity
+        state = np.zeros(5)  # Initialize state representation
 
-        while attempts < 6:
-            # Check if possible_words is empty, and reset if so
+        while attempts < 6:  # Wordle allows up to 6 attempts
+            # Ensure there's a valid word list to choose from
             if len(possible_words) == 0:
-                possible_words = word_list.copy()  # Reset to full word list if filtered out
-                print("Possible words list is empty, resetting to full word list.")
+                possible_words = word_list.copy()  # Reset if empty
+                print("Possible words list is empty, resetting.")
 
-            # Choose action (epsilon-greedy)
+            # Choose action using epsilon-greedy strategy
             if random.uniform(0, 1) < epsilon:
-                action_index = random.randint(0, len(possible_words) - 1)  # Explore
+                action_index = random.randint(0, len(possible_words) - 1)  # Random choice (explore)
             else:
                 state_tensor = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
-                action_index = torch.argmax(dqn(state_tensor)).item()  # Exploit
+                action_index = torch.argmax(dqn(state_tensor)).item()  # Choose best action (exploit)
 
-            # Ensure the action index is valid
+            # Ensure action index is valid
             action_index = min(action_index, len(possible_words) - 1)
 
             guess = possible_words[action_index]
             feedback = get_feedback(guess, target_word)
-            reward = feedback.count(2)  # Reward based on correct letters
+            reward = feedback.count(2)  # Reward = count of correct letters
 
             # Update possible words based on feedback
             possible_words = get_possible_words(guesses + [guess], feedbacks + [feedback])
-            next_state = np.array([f for f in feedback])  # Use feedback as state transition
+            next_state = np.array([f for f in feedback])  # Convert feedback to state
 
-            # Store experience in memory
+            # Store experience in replay memory
             memory.append((state, action_index, reward, next_state))
 
-            # Train on minibatch
+            # Train on minibatch if enough data is available
             if len(memory) >= batch_size:
                 minibatch = random.sample(memory, batch_size)
                 states, actions, rewards, next_states = zip(*minibatch)
@@ -134,22 +154,21 @@ else:
                 loss.backward()
                 optimizer.step()
 
-            # Move to next state
             state = next_state
             guesses.append(guess)
             feedbacks.append(feedback)
             attempts += 1
 
-        # Decay epsilon more slowly
+        # Decay epsilon after each episode
         if epsilon > epsilon_min:
             epsilon *= epsilon_decay
 
-        # Save the model at intervals
+        # Save model periodically
         if (episode + 1) % save_interval == 0:
             torch.save(dqn.state_dict(), model_path)
             print(f"Checkpoint saved at episode {episode + 1}.")
 
-    # Final model save
+    # Save final trained model
     torch.save(dqn.state_dict(), model_path)
     print("Training completed! Model saved.")
 

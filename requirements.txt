@@ -54,3 +54,4 @@ duckduckgo_search~=7.2.1
 pytz~=2024.1
 numpy~=1.26.4
 PyAudio~=0.2.14
+scikit-learn~=1.5.0
