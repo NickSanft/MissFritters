@@ -16,6 +16,7 @@ vectorizer = CountVectorizer(analyzer="char", ngram_range=(1, 1))
 X_words = vectorizer.fit_transform(word_list).toarray()
 word_to_index = {word: i for i, word in enumerate(word_list)}
 
+
 # Wordle feedback function
 def get_feedback(guess, target):
     feedback = [0] * 5
@@ -26,12 +27,14 @@ def get_feedback(guess, target):
             feedback[i] = 1  # Correct letter but wrong position
     return tuple(feedback)
 
+
 # Get possible words based on previous guesses and feedback
 def get_possible_words(guesses, feedbacks):
     possible_words = word_list.copy()
     for guess, feedback in zip(guesses, feedbacks):
         possible_words = [word for word in possible_words if get_feedback(guess, word) == feedback]
     return possible_words
+
 
 # Define Deep Q-Network
 class DQN(nn.Module):
@@ -45,6 +48,7 @@ class DQN(nn.Module):
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
         return self.fc3(x)  # Q-values for each action
+
 
 # Training parameters
 learning_rate = 0.001
@@ -149,15 +153,20 @@ else:
     torch.save(dqn.state_dict(), model_path)
     print("Training completed! Model saved.")
 
-def play_wordle(target_word, game_number=1345):
+
+def play_wordle_internal(target_word, game_number=1345):
     state = np.zeros(5)  # Initial state (no feedback yet)
     guesses = []
     feedbacks = []
-    print(f"Wordle {game_number}")
+
+    # Start with the formatted header
+    result_header = f"Wordle {game_number} "
+    result_body = ""
 
     # Keep track of possible words based on feedback
     possible_words = word_list.copy()
 
+    # Make up to 6 guesses
     for attempt in range(6):
         # Select action based on epsilon-greedy strategy
         state_tensor = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
@@ -167,18 +176,20 @@ def play_wordle(target_word, game_number=1345):
         action_index = min(action_index, len(possible_words) - 1)
 
         guess = possible_words[action_index]
-        print(f"Guess {attempt + 1}: {guess}")
 
         feedback = get_feedback(guess, target_word)
 
         # Convert feedback to colored emojis
         emoji_feedback = "".join(["🟩" if f == 2 else "🟨" if f == 1 else "⬛" for f in feedback])
-        print(emoji_feedback)
 
+        # Append guess with emoji feedback to the result string
+        result_body += f"\n{emoji_feedback}"
 
+        # Check if the guess is correct
         if feedback == (2, 2, 2, 2, 2):  # All letters are correct
-            print(f"Word guessed correctly in {attempt + 1}/6!")
-            return
+            result_header = result_header + f" {attempt + 1}/6"
+            result = result_header + f"\r\n{result_body.strip()} "  # Add number of attempts at the end
+            return result
 
         # Update the possible words list based on feedback
         possible_words = get_possible_words(guesses + [guess], feedbacks + [feedback])
@@ -190,10 +201,13 @@ def play_wordle(target_word, game_number=1345):
         guesses.append(guess)
         feedbacks.append(feedback)
 
-    print("X/6")  # If the AI fails to guess in 6 attempts
-    print("Failed to guess the word.")
+    # If the AI fails to guess in 6 attempts
+    result_header = result_header + " X/6"
+    result = result_header + f"\r\n{result_body.strip()}"  # Indicate failure with X/6
+    return result
+
 
 # Test the trained model
 test_word = random.choice(word_list)
 print(f"Target Word: {test_word}")
-play_wordle(test_word)
+print(play_wordle_internal(test_word))

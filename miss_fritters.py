@@ -23,6 +23,7 @@ from kasa_integration import turn_off_lights, turn_on_lights, change_light_color
 # ===== LOCAL MODULES =====
 from message_source import MessageSource
 from sqlite_store import SQLiteStore
+from wordle_integration import play_wordle_internal
 
 # ===== CONFIGURATION =====
 LLAMA_MODEL = "llama3.2"
@@ -48,6 +49,7 @@ def get_tools_description():
         "deck_cards_left": (deck_cards_left, "Check remaining cards in a deck."),
         "deck_reload": (deck_reload, "Shuffle or reload the current deck."),
         "search_memories": (search_memories, "Returns a JSON payload of stored memories you have had with a user."),
+        "play_wordle": (play_wordle, "Takes in a word and game number and tries to solve the Wordle."),
         "turn_off_lights": (turn_off_lights, "Turns off the lights."),
         "turn_on_lights": (turn_on_lights, "Turns on the lights."),
         "change_light_color": (change_light_color, "Changes the light color. Accepts a valid hue in degrees.")
@@ -106,6 +108,18 @@ def search_memories_internal(config: RunnableConfig):
     json_summaries = json.dumps(summaries)
     print(json_summaries)
     return json_summaries
+
+
+@tool(parse_docstring=True, return_direct=True)
+def play_wordle(word: str, game_number: int):
+    """
+    Attempts to play a game of world with a provided word and game number.
+
+    Args:
+    word: The word to guess.
+    game_number: The game number.
+    """
+    return play_wordle_internal(word, game_number)
 
 
 @tool(parse_docstring=True)
@@ -278,7 +292,6 @@ HERMES_MODEL = "hermes3"
 hermes_instance = ChatOllama(model=HERMES_MODEL)
 
 
-
 def supervisor_routing(state: MessagesState, config: RunnableConfig):
     """Handles general conversation, calling appropriate helpers for specific tasks."""
     messages = state["messages"]
@@ -342,7 +355,7 @@ def summarize_conversation(state: MessagesState, config: RunnableConfig):
     user_id = config.get("metadata").get("user_id")
     summary_message_prompt = "Please summarize the conversation above:"
     messages = state["messages"]
-    messages[-1].content = messages[-1].content + "\r\n I am wrapping up this conversation and starting a new one :)"
+    # messages[-1].content = messages[-1].content + "\r\n I am wrapping up this conversation and starting a new one :)"
     messages = messages + [HumanMessage(content=summary_message_prompt)]
     summary_response = llama_instance.invoke(messages)
     timestamp = get_current_time_internal()
