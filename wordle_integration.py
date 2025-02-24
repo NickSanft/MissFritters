@@ -50,7 +50,7 @@ class DQN(nn.Module):
 learning_rate = 0.001
 gamma = 0.9
 epsilon = 1.0
-epsilon_decay = 0.995
+epsilon_decay = 0.999  # Slower epsilon decay for better exploration
 epsilon_min = 0.1
 batch_size = 64
 memory_size = 5000
@@ -80,9 +80,9 @@ else:
         target_word = random.choice(word_list)
         guesses = []
         feedbacks = []
-        state = (0, 0, 0, 0, 0)  # Initial state (no feedback yet)
         possible_words = word_list.copy()  # Track possible words
         attempts = 0
+        state = np.zeros(5)  # State as a vector of zeros, for simplicity
 
         while attempts < 6:
             # Check if possible_words is empty, and reset if so
@@ -106,7 +106,7 @@ else:
 
             # Update possible words based on feedback
             possible_words = get_possible_words(guesses + [guess], feedbacks + [feedback])
-            next_state = tuple(feedback)  # Next state is feedback for simplicity
+            next_state = np.array([f for f in feedback])  # Use feedback as state transition
 
             # Store experience in memory
             memory.append((state, action_index, reward, next_state))
@@ -136,7 +136,7 @@ else:
             feedbacks.append(feedback)
             attempts += 1
 
-        # Decay epsilon
+        # Decay epsilon more slowly
         if epsilon > epsilon_min:
             epsilon *= epsilon_decay
 
@@ -151,7 +151,7 @@ else:
 
 # Function to play a Wordle game with the trained model
 def play_wordle(target_word, game_number=1345):
-    state = (0, 0, 0, 0, 0)
+    state = np.zeros(5)  # Reset state to an array of zeros
     guesses = []
     feedbacks = []
     print(f"Wordle {game_number}")
@@ -172,7 +172,7 @@ def play_wordle(target_word, game_number=1345):
             print(f"{attempt+1}/6*")
             print("Word guessed correctly!")
             return
-        state = feedback  # Update the state to the feedback
+        state = np.array([f for f in feedback])  # Update state based on feedback
         guesses.append(guess)
         feedbacks.append(feedback)
 
