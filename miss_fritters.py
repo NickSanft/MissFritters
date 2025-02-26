@@ -254,7 +254,7 @@ def ask_stuff(base_prompt: str, source: MessageSource, user_id: str) -> str:
     print(f"Prompt to ask: {full_prompt}")
 
     config = {"configurable": {"user_id": user_id_clean, "thread_id": user_id_clean}}
-    inputs = {"messages": [("system", system_prompt), ("user", full_prompt)]}
+    inputs = {"messages": [("user", full_prompt)]}
 
     return print_stream(app.stream(inputs, config=config, stream_mode="values"))
 
@@ -291,6 +291,8 @@ orca_instance = ChatOllama(model=MISTRAL_ORCA_MODEL)
 HERMES_MODEL = "hermes3"
 hermes_instance = ChatOllama(model=HERMES_MODEL)
 
+react_agent = create_react_agent(llama_instance, tools=tools)
+
 
 def supervisor_routing(state: MessagesState, config: RunnableConfig):
     """Handles general conversation, calling appropriate helpers for specific tasks."""
@@ -312,7 +314,7 @@ def supervisor_routing(state: MessagesState, config: RunnableConfig):
     """
     print(f"Supervisor prompt: {supervisor_prompt}")
     inputs = [("system", supervisor_prompt), ("user", latest_message)]
-    original_response = llama_instance.invoke(inputs)
+    original_response = hermes_instance.invoke(inputs)
     route = original_response.content.lower()
     print(f"ROUTE DETERMINED: {route}")
     if route not in [CODING_NODE, STORY_NODE, CONVERSATION_NODE]:
@@ -374,6 +376,15 @@ def summarize_conversation(state: MessagesState, config: RunnableConfig):
     return {"messages": delete_messages}
 
 
+def conversation(state: MessagesState, config: RunnableConfig):
+    messages = state["messages"]
+    latest_message = messages[-1].content if messages else ""
+    print(f"Latest messsage: {latest_message}")
+    inputs = {"messages": [("system", get_system_description()), ("user", latest_message)]}
+    resp = print_stream(react_agent.stream(inputs, config=get_config_values(config), stream_mode="values"))
+    return {'messages': [resp]}
+
+
 def get_config_values(config: RunnableConfig):
     config_values = {
         "configurable": {
@@ -388,7 +399,7 @@ def get_config_values(config: RunnableConfig):
 workflow = StateGraph(MessagesState)
 
 # Define nodes
-workflow.add_node(CONVERSATION_NODE, create_react_agent(hermes_instance, tools=tools))
+workflow.add_node(CONVERSATION_NODE, conversation)
 workflow.add_node(SUMMARIZE_CONVERSATION_NODE, summarize_conversation)
 workflow.add_node(CODING_NODE, help_with_coding)
 workflow.add_node(STORY_NODE, tell_a_story)

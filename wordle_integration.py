@@ -228,6 +228,6 @@ def play_wordle_internal(target_word, game_number=1345):
 
 
 # Test the trained model
-test_word = random.choice(word_list)
-print(f"Target Word: {test_word}")
-print(play_wordle_internal(test_word))
+# test_word = random.choice(word_list)
+# print(f"Target Word: {test_word}")
+# print(play_wordle_internal(test_word))
