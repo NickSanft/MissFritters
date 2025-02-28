@@ -19,6 +19,11 @@ def get_key_from_json_config_file(key_name: str) -> str | None:
         print(f"Error reading file: {e}")
     return None
 
+def has_key_from_json_config_file(key: str) -> bool:
+    if get_key_from_json_config_file(key) is None:
+        return False
+    return True
+
 def check_root_user(user_id: str) -> bool:
     root_user_id = get_key_from_json_config_file(ROOT_USER_ID_KEY)
     if root_user_id is None or user_id != root_user_id:

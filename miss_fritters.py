@@ -19,6 +19,8 @@ from langgraph.graph import StateGraph, MessagesState
 from langgraph.prebuilt import create_react_agent
 
 import deck_of_cards_integration
+import fritters_utils
+from fritters_utils import KASA_USER_KEY, KASA_PASSWORD_KEY
 from kasa_integration import turn_off_lights, turn_on_lights, change_light_color
 # ===== LOCAL MODULES =====
 from message_source import MessageSource
@@ -49,11 +51,17 @@ def get_tools_description():
         "deck_cards_left": (deck_cards_left, "Check remaining cards in a deck."),
         "deck_reload": (deck_reload, "Shuffle or reload the current deck."),
         "search_memories": (search_memories, "Returns a JSON payload of stored memories you have had with a user."),
-        "play_wordle": (play_wordle, "Takes in a word and game number and tries to solve the Wordle."),
-        "turn_off_lights": (turn_off_lights, "Turns off the lights."),
-        "turn_on_lights": (turn_on_lights, "Turns on the lights."),
-        "change_light_color": (change_light_color, "Changes the light color. Accepts a valid hue in degrees.")
+        "play_wordle": (play_wordle, "Takes in a word and game number and tries to solve the Wordle.")
     }
+
+    if fritters_utils.has_key_from_json_config_file(KASA_USER_KEY) and fritters_utils.has_key_from_json_config_file(
+            KASA_PASSWORD_KEY):
+        tool_dict["turn_off_lights"] = (turn_off_lights, "Turns off the lights.")
+        tool_dict["turn_on_lights"] = (turn_on_lights, "Turns on the lights.")
+        tool_dict["change_light_color"] = (change_light_color, "Changes light color. Accepts a valid hue in degrees.")
+        print("Added Kasa integration tools.")
+    else:
+        print("Did not find Kasa integration properties.")
     return tool_dict
 
 
@@ -273,6 +281,7 @@ def print_stream(stream):
 
 # ===== SETUP & INITIALIZATION =====
 tools = [tool_info[0] for tool_info in get_tools_description().values()]
+print(tools)
 
 store = SQLiteStore(DB_NAME)
 exit_stack = ExitStack()
