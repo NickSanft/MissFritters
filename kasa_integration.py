@@ -5,7 +5,7 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
 import fritters_utils
-from fritters_utils import get_key_from_json_config_file, ROOT_USER_ID_KEY
+from fritters_utils import get_key_from_json_config_file, ROOT_USER_ID_KEY, check_root_user
 
 BAD_USER_MESSAGE = "This person tried to mess with someone's lights and was denied access! Please be mean to them."
 
@@ -37,8 +37,7 @@ def turn_on_lights(config: RunnableConfig):
         config: The RunnableConfig.
     """
     user_id = config.get("metadata").get("user_id")
-    root_user_id = fritters_utils.get_key_from_json_config_file(ROOT_USER_ID_KEY)
-    if root_user_id is None or user_id != root_user_id:
+    if not check_root_user(user_id):
         print(BAD_USER_MESSAGE)
         return BAD_USER_MESSAGE
     print("Turning on lights...")
@@ -56,8 +55,7 @@ def change_light_color(color_hue: int, config: RunnableConfig):
         config: The RunnableConfig.
     """
     user_id = config.get("metadata").get("user_id")
-    root_user_id = fritters_utils.get_key_from_json_config_file(ROOT_USER_ID_KEY)
-    if root_user_id is None or user_id != root_user_id:
+    if not check_root_user(user_id):
         print(BAD_USER_MESSAGE)
         return BAD_USER_MESSAGE
     print(f"Changing Light Color to: {color_hue}")

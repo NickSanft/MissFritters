@@ -46,7 +46,11 @@ async def ask(ctx, *, message):
 
 @client.command()
 async def lights(ctx):
-    await ctx.send("Press a button!", view=MyView())
+    author = ctx.author.name
+    if not fritters_utils.check_root_user(author):
+        await ctx.send(f"Nice try, {author}. You are not the root user!")
+    else:
+        await ctx.send("Press a button!", view=MyView())
 
 
 class MyView(discord.ui.View):
