@@ -37,6 +37,11 @@ async def join(ctx):
 
 
 @client.command()
+async def emote(ctx):
+    await ctx.send("<:MissFritters:1325945940716290151>")
+
+
+@client.command()
 async def ask(ctx, *, message):
     author = ctx.author.name
     original_response = ask_stuff(message, MessageSource.DISCORD_VOICE, author)
@@ -48,7 +53,8 @@ async def ask(ctx, *, message):
 async def lights(ctx):
     author = ctx.author.name
     if not fritters_utils.check_root_user(author):
-        await ctx.send(f"Nice try, {author}. You are not the root user!")
+        await ctx.send(
+            f"<:Bartender:1344864904561037382> Nice try, {author}. You are not the root user! <:Bartender:1344864904561037382>")
     else:
         await ctx.send("Press a button!", view=MyView())
 
