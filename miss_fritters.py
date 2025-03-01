@@ -11,7 +11,7 @@ import pytz
 from duckduckgo_search import DDGS
 from langchain_core.messages import HumanMessage, RemoveMessage
 from langchain_core.runnables import RunnableConfig
-from langchain_core.tools import tool
+from langchain_core.tools import tool, BaseTool
 from langchain_ollama import ChatOllama
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.constants import START, END
@@ -20,7 +20,6 @@ from langgraph.prebuilt import create_react_agent
 
 import deck_of_cards_integration
 import fritters_utils
-from fritters_utils import KASA_USER_KEY, KASA_PASSWORD_KEY
 from kasa_integration import turn_off_lights, turn_on_lights, change_light_color
 # ===== LOCAL MODULES =====
 from message_source import MessageSource
@@ -36,14 +35,15 @@ DB_NAME = "chat_history.db"
 CONVERSATION_NODE = "conversation"
 CODING_NODE = "help_with_coding"
 STORY_NODE = "tell_a_story"
+HOME_NODE = "home_management"
 SUMMARIZE_CONVERSATION_NODE = "summarize_conversation"
 
 
-def get_tools_description():
+def get_conversation_tools_description():
     """
     Returns a dictionary of available tools and their descriptions.
     """
-    tool_dict = {
+    conversation_tool_dict = {
         "get_current_time": (get_current_time, "Fetch the current time (US / Central Standard Time)."),
         "search_web": (search_web, "Use only to search the internet if you are unsure about something."),
         "roll_dice": (roll_dice, "Roll different types of dice."),
@@ -53,27 +53,30 @@ def get_tools_description():
         "search_memories": (search_memories, "Returns a JSON payload of stored memories you have had with a user."),
         "play_wordle": (play_wordle, "Takes in a word and game number and tries to solve the Wordle.")
     }
+    return conversation_tool_dict
 
-    if fritters_utils.has_key_from_json_config_file(KASA_USER_KEY) and fritters_utils.has_key_from_json_config_file(
-            KASA_PASSWORD_KEY):
-        tool_dict["turn_off_lights"] = (turn_off_lights, "Turns off the lights.")
-        tool_dict["turn_on_lights"] = (turn_on_lights, "Turns on the lights.")
-        tool_dict["change_light_color"] = (change_light_color, "Changes light color. Accepts a valid hue in degrees.")
-        print("Added Kasa integration tools.")
-    else:
-        print("Did not find Kasa integration properties.")
-    return tool_dict
+
+def get_home_management_tools_description():
+    """
+    Returns a dictionary of available tools and their descriptions.
+    """
+    home_tool_dict = {
+        "turn_off_lights": (turn_off_lights, "Turns off the lights."),
+        "turn_on_lights": (turn_on_lights, "Turns on the lights."),
+        "change_light_color": (change_light_color, "Changes light color. Accepts a valid hue in degrees.")
+    }
+
+    return home_tool_dict
 
 
 # ===== UTILITY FUNCTIONS =====
-def get_system_description():
+def get_system_description(tools: dict[str, tuple[BaseTool, str]]):
     """
     Format the chatbot's system role description dynamically by including tools from the list.
     """
-    available_tools = get_tools_description()
     # Set tools list dynamically
     tool_descriptions = "".join(
-        [f"    {tool_name}: {tup[1]}\n" for tool_name, tup in available_tools.items()]
+        [f"    {tool_name}: {tup[1]}\n" for tool_name, tup in tools.items()]
     )
 
     return f"""
@@ -257,7 +260,7 @@ def ask_stuff(base_prompt: str, source: MessageSource, user_id: str) -> str:
     user_id_clean = re.sub(r'[^a-zA-Z0-9]', '', user_id)  # Clean special characters
     full_prompt = format_prompt(base_prompt, source, user_id_clean)
 
-    system_prompt = get_system_description()
+    system_prompt = get_system_description(get_conversation_tools_description())
     print(f"Role description: {system_prompt}")
     print(f"Prompt to ask: {full_prompt}")
 
@@ -280,8 +283,11 @@ def print_stream(stream):
 
 
 # ===== SETUP & INITIALIZATION =====
-tools = [tool_info[0] for tool_info in get_tools_description().values()]
-print(tools)
+conversation_tools = [tool_info[0] for tool_info in get_conversation_tools_description().values()]
+print(conversation_tools)
+
+home_tools = [tool_info[0] for tool_info in get_home_management_tools_description().values()]
+print(home_tools)
 
 store = SQLiteStore(DB_NAME)
 exit_stack = ExitStack()
@@ -300,19 +306,28 @@ orca_instance = ChatOllama(model=MISTRAL_ORCA_MODEL)
 HERMES_MODEL = "hermes3"
 hermes_instance = ChatOllama(model=HERMES_MODEL)
 
-react_agent = create_react_agent(llama_instance, tools=tools)
+conversation_react_agent = create_react_agent(llama_instance, tools=conversation_tools)
+home_management_react_agent = create_react_agent(llama_instance, tools=home_tools)
 
 
 def supervisor_routing(state: MessagesState, config: RunnableConfig):
     """Handles general conversation, calling appropriate helpers for specific tasks."""
     messages = state["messages"]
     latest_message = messages[-1].content if messages else ""
+    user_id = config.get("metadata").get("user_id")
+
+    home_management_desc = ""
+    home_management_example = ""
+    if fritters_utils.check_root_user(user_id):
+        home_management_desc = f"\"{HOME_NODE}\" - use if the user is requesting you to manage lights in a home."
+        home_management_example = f"- \"Can you turn off the lights?\" -> \"{HOME_NODE}\""
 
     supervisor_prompt = f"""
     Your response must always be one of the following options:
     "{CONVERSATION_NODE}" - used by default.
     "{CODING_NODE}" - use if the user is asking for something code-related.
     "{STORY_NODE}" - use if the user is asking you tell a story.
+    {home_management_desc}
 
     Do NOT generate any additional text or explanations.
     Only return one of the above values as the complete response.
@@ -320,13 +335,14 @@ def supervisor_routing(state: MessagesState, config: RunnableConfig):
     - "Can you help me with a Python script to list all values in a dict" → "{CODING_NODE}"
     - "Can you tell me a story about frogs?" → "{STORY_NODE}"
     - "How are you doing?" → "{CONVERSATION_NODE}"
+    {home_management_example}
     """
     print(f"Supervisor prompt: {supervisor_prompt}")
     inputs = [("system", supervisor_prompt), ("user", latest_message)]
     original_response = hermes_instance.invoke(inputs)
     route = original_response.content.lower()
     print(f"ROUTE DETERMINED: {route}")
-    if route not in [CODING_NODE, STORY_NODE, CONVERSATION_NODE]:
+    if route not in [CODING_NODE, STORY_NODE, CONVERSATION_NODE, HOME_NODE]:
         print("This bot went a little crazy, defaulting to conversation.")
         route = CONVERSATION_NODE
     return route
@@ -362,7 +378,6 @@ def help_with_coding(state: MessagesState, config: RunnableConfig):
 
 def summarize_conversation(state: MessagesState, config: RunnableConfig):
     print("In: summarize_conversation")
-    user_config = get_config_values(config)
     user_id = config.get("metadata").get("user_id")
     summary_message_prompt = "Please summarize the conversation above:"
     messages = state["messages"]
@@ -389,8 +404,18 @@ def conversation(state: MessagesState, config: RunnableConfig):
     messages = state["messages"]
     latest_message = messages[-1].content if messages else ""
     print(f"Latest messsage: {latest_message}")
-    inputs = {"messages": [("system", get_system_description()), ("user", latest_message)]}
-    resp = print_stream(react_agent.stream(inputs, config=get_config_values(config), stream_mode="values"))
+    inputs = {"messages": [("system", get_system_description(get_conversation_tools_description())), ("user", latest_message)]}
+    resp = print_stream(conversation_react_agent.stream(inputs, config=get_config_values(config), stream_mode="values"))
+    return {'messages': [resp]}
+
+
+def home_management(state: MessagesState, config: RunnableConfig):
+    messages = state["messages"]
+    latest_message = messages[-1].content if messages else ""
+    print(f"Latest messsage: {latest_message}")
+    inputs = {"messages": [("system", get_system_description(get_home_management_tools_description())), ("user", latest_message)]}
+    resp = print_stream(
+        home_management_react_agent.stream(inputs, config=get_config_values(config), stream_mode="values"))
     return {'messages': [resp]}
 
 
@@ -412,13 +437,16 @@ workflow.add_node(CONVERSATION_NODE, conversation)
 workflow.add_node(SUMMARIZE_CONVERSATION_NODE, summarize_conversation)
 workflow.add_node(CODING_NODE, help_with_coding)
 workflow.add_node(STORY_NODE, tell_a_story)
+workflow.add_node(HOME_NODE, home_management)
 
 # Set workflow edges
 workflow.add_conditional_edges(START, supervisor_routing,
-                               {CONVERSATION_NODE: CONVERSATION_NODE, CODING_NODE: CODING_NODE, STORY_NODE: STORY_NODE})
+                               {CONVERSATION_NODE: CONVERSATION_NODE, CODING_NODE: CODING_NODE, STORY_NODE: STORY_NODE,
+                                HOME_NODE: HOME_NODE})
 workflow.add_conditional_edges(CONVERSATION_NODE, should_continue)
 workflow.add_conditional_edges(CODING_NODE, should_continue)
 workflow.add_conditional_edges(STORY_NODE, should_continue)
+workflow.add_conditional_edges(HOME_NODE, should_continue)
 workflow.add_edge(SUMMARIZE_CONVERSATION_NODE, END)
 
 # Compile graph
