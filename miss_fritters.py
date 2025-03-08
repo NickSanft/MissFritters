@@ -63,6 +63,8 @@ def get_home_management_tools_description():
     home_tool_dict = {
         "turn_off_lights": (turn_off_lights, "Turns off the lights."),
         "turn_on_lights": (turn_on_lights, "Turns on the lights."),
+        "turn_off_bedroom_lights": (turn_off_lights, "Turns off the bedroom lights."),
+        "turn_on_bedroom_lights": (turn_on_lights, "Turns on the bedroom lights."),
         "change_light_color": (change_light_color, "Changes light color. Accepts a valid hue in degrees.")
     }
 
@@ -404,7 +406,8 @@ def conversation(state: MessagesState, config: RunnableConfig):
     messages = state["messages"]
     latest_message = messages[-1].content if messages else ""
     print(f"Latest messsage: {latest_message}")
-    inputs = {"messages": [("system", get_system_description(get_conversation_tools_description())), ("user", latest_message)]}
+    inputs = {"messages": [("system", get_system_description(get_conversation_tools_description())),
+                           ("user", latest_message)]}
     resp = print_stream(conversation_react_agent.stream(inputs, config=get_config_values(config), stream_mode="values"))
     return {'messages': [resp]}
 
@@ -413,7 +416,8 @@ def home_management(state: MessagesState, config: RunnableConfig):
     messages = state["messages"]
     latest_message = messages[-1].content if messages else ""
     print(f"Latest messsage: {latest_message}")
-    inputs = {"messages": [("system", get_system_description(get_home_management_tools_description())), ("user", latest_message)]}
+    inputs = {"messages": [("system", get_system_description(get_home_management_tools_description())),
+                           ("user", latest_message)]}
     resp = print_stream(
         home_management_react_agent.stream(inputs, config=get_config_values(config), stream_mode="values"))
     return {'messages': [resp]}
@@ -452,8 +456,9 @@ workflow.add_edge(SUMMARIZE_CONVERSATION_NODE, END)
 # Compile graph
 app = workflow.compile(checkpointer=checkpointer, store=store)
 
-with open("mermaid_diagram.png", "wb") as binary_file:
-    binary_file.write(app.get_graph().draw_mermaid_png())
+
+# with open("mermaid_diagram.png", "wb") as binary_file:
+#     binary_file.write(app.get_graph().draw_mermaid_png())
 
 
 def test_asking_stuff():
