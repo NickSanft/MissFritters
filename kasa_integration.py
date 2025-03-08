@@ -29,6 +29,24 @@ def turn_off_lights(config: RunnableConfig):
 
 
 @tool(parse_docstring=True)
+def turn_off_bedroom_lights(config: RunnableConfig):
+    """
+    Turns off the lights.
+
+    Args:
+        config: The RunnableConfig.
+    """
+    user_id = config.get("metadata").get("user_id")
+    root_user_id = fritters_utils.get_key_from_json_config_file(ROOT_USER_ID_KEY)
+    if root_user_id is None or user_id != root_user_id:
+        print(BAD_USER_MESSAGE)
+        return BAD_USER_MESSAGE
+    print("Turning off lights...")
+    asyncio.run(turn_off_specific_lights_internal("bedroom"))
+    return "The bedroom lights have been turned off."
+
+
+@tool(parse_docstring=True)
 def turn_on_lights(config: RunnableConfig):
     """
     Turns on the lights.
@@ -43,6 +61,23 @@ def turn_on_lights(config: RunnableConfig):
     print("Turning on lights...")
     asyncio.run(turn_on_lights_internal())
     return "The lights have been turned on."
+
+
+@tool(parse_docstring=True)
+def turn_on_bedroom_lights(config: RunnableConfig):
+    """
+    Turns on the lights.
+
+    Args:
+        config: The RunnableConfig.
+    """
+    user_id = config.get("metadata").get("user_id")
+    if not check_root_user(user_id):
+        print(BAD_USER_MESSAGE)
+        return BAD_USER_MESSAGE
+    print("Turning on lights...")
+    asyncio.run(turn_on_specific_lights_internal("bedroom"))
+    return "The bedroom lights have been turned on."
 
 
 @tool(parse_docstring=True)
@@ -62,12 +97,31 @@ def change_light_color(color_hue: int, config: RunnableConfig):
     asyncio.run(change_light_color_internal(color_hue))
     return f"All lights have been changed to the color: {color_hue}"
 
+
+async def turn_off_specific_lights_internal(search_term: str):
+    found_devices = await get_devices()
+    for device in found_devices.values():
+        if search_term.lower() in device.alias.lower():
+            await device.turn_off()
+            await device.update()
+            print(f"{device.alias} turned off.")
+
+
 async def turn_off_lights_internal():
     found_devices = await get_devices()
     for device in found_devices.values():
         await device.turn_off()
         await device.update()
         print(f"{device.alias} turned off.")
+
+
+async def turn_on_specific_lights_internal(search_term: str):
+    found_devices = await get_devices()
+    for device in found_devices.values():
+        if search_term.lower() in device.alias.lower():
+            await device.turn_on()
+            await device.update()
+            print(f"{device.alias} turned on.")
 
 
 async def turn_on_lights_internal():

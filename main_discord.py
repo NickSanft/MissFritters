@@ -75,6 +75,16 @@ class MyView(discord.ui.View):
         await interaction.response.send_message("Color changing to purple!")
         await kasa_integration.change_light_color_internal(300)
 
+    @discord.ui.button(label="Turn bedroom lights on", row=1, style=discord.ButtonStyle.primary)
+    async def fourth_button_callback(self, interaction, button):
+        await interaction.response.send_message("Bedroom lights turning on!")
+        await kasa_integration.turn_on_specific_lights_internal("bedroom")
+
+    @discord.ui.button(label="Turn bedroom lights off", row=1, style=discord.ButtonStyle.primary)
+    async def fifth_button_callback(self, interaction, button):
+        await interaction.response.send_message("Bedroom lights turning off!")
+        await kasa_integration.turn_off_specific_lights_internal("bedroom")
+
 
 @client.command()
 async def leave(ctx):
