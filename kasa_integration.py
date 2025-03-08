@@ -8,6 +8,7 @@ import fritters_utils
 from fritters_utils import get_key_from_json_config_file, ROOT_USER_ID_KEY, check_root_user
 
 BAD_USER_MESSAGE = "This person tried to mess with someone's lights and was denied access! Please be mean to them."
+BEDROOM_SEARCH_TERM = "bedroom"
 
 
 @tool(parse_docstring=True)
@@ -42,7 +43,7 @@ def turn_off_bedroom_lights(config: RunnableConfig):
         print(BAD_USER_MESSAGE)
         return BAD_USER_MESSAGE
     print("Turning off lights...")
-    asyncio.run(turn_off_specific_lights_internal("bedroom"))
+    asyncio.run(turn_off_specific_lights_internal(BEDROOM_SEARCH_TERM))
     return "The bedroom lights have been turned off."
 
 
@@ -76,7 +77,7 @@ def turn_on_bedroom_lights(config: RunnableConfig):
         print(BAD_USER_MESSAGE)
         return BAD_USER_MESSAGE
     print("Turning on lights...")
-    asyncio.run(turn_on_specific_lights_internal("bedroom"))
+    asyncio.run(turn_on_specific_lights_internal(BEDROOM_SEARCH_TERM))
     return "The bedroom lights have been turned on."
 
 

@@ -78,12 +78,12 @@ class MyView(discord.ui.View):
     @discord.ui.button(label="Turn bedroom lights on", row=1, style=discord.ButtonStyle.primary)
     async def fourth_button_callback(self, interaction, button):
         await interaction.response.send_message("Bedroom lights turning on!")
-        await kasa_integration.turn_on_specific_lights_internal("bedroom")
+        await kasa_integration.turn_on_specific_lights_internal(kasa_integration.BEDROOM_SEARCH_TERM)
 
     @discord.ui.button(label="Turn bedroom lights off", row=1, style=discord.ButtonStyle.primary)
     async def fifth_button_callback(self, interaction, button):
         await interaction.response.send_message("Bedroom lights turning off!")
-        await kasa_integration.turn_off_specific_lights_internal("bedroom")
+        await kasa_integration.turn_off_specific_lights_internal(kasa_integration.BEDROOM_SEARCH_TERM)
 
 
 @client.command()
