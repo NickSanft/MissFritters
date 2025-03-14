@@ -20,7 +20,8 @@ from langgraph.prebuilt import create_react_agent
 
 import deck_of_cards_integration
 import fritters_utils
-from kasa_integration import turn_off_lights, turn_on_lights, change_light_color
+from kasa_integration import turn_off_lights, turn_on_lights, change_light_color, turn_off_bedroom_lights, \
+    turn_on_bedroom_lights
 # ===== LOCAL MODULES =====
 from message_source import MessageSource
 from sqlite_store import SQLiteStore
@@ -63,8 +64,8 @@ def get_home_management_tools_description():
     home_tool_dict = {
         "turn_off_lights": (turn_off_lights, "Turns off the lights."),
         "turn_on_lights": (turn_on_lights, "Turns on the lights."),
-        "turn_off_bedroom_lights": (turn_off_lights, "Turns off the bedroom lights."),
-        "turn_on_bedroom_lights": (turn_on_lights, "Turns on the bedroom lights."),
+        "turn_off_bedroom_lights": (turn_off_bedroom_lights, "Turns off the bedroom lights."),
+        "turn_on_bedroom_lights": (turn_on_bedroom_lights, "Turns on the bedroom lights."),
         "change_light_color": (change_light_color, "Changes light color. Accepts a valid hue in degrees.")
     }
 
@@ -342,7 +343,7 @@ def supervisor_routing(state: MessagesState, config: RunnableConfig):
     print(f"Supervisor prompt: {supervisor_prompt}")
     inputs = [("system", supervisor_prompt), ("user", latest_message)]
     original_response = hermes_instance.invoke(inputs)
-    route = original_response.content.lower()
+    route = original_response.content.lower().replace("\"","")
     print(f"ROUTE DETERMINED: {route}")
     if route not in [CODING_NODE, STORY_NODE, CONVERSATION_NODE, HOME_NODE]:
         print("This bot went a little crazy, defaulting to conversation.")
