@@ -226,7 +226,6 @@ def play_wordle_internal(target_word, game_number=1345):
     result = result_header + f"\r\n{result_body.strip()}"  # Indicate failure with X/6
     return result
 
-
 # Test the trained model
 # test_word = random.choice(word_list)
 # print(f"Target Word: {test_word}")

@@ -343,7 +343,7 @@ def supervisor_routing(state: MessagesState, config: RunnableConfig):
     print(f"Supervisor prompt: {supervisor_prompt}")
     inputs = [("system", supervisor_prompt), ("user", latest_message)]
     original_response = hermes_instance.invoke(inputs)
-    route = original_response.content.lower().replace("\"","")
+    route = original_response.content.lower().replace("\"", "")
     print(f"ROUTE DETERMINED: {route}")
     if route not in [CODING_NODE, STORY_NODE, CONVERSATION_NODE, HOME_NODE]:
         print("This bot went a little crazy, defaulting to conversation.")
