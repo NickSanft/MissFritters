@@ -309,6 +309,9 @@ orca_instance = ChatOllama(model=MISTRAL_ORCA_MODEL)
 HERMES_MODEL = "hermes3"
 hermes_instance = ChatOllama(model=HERMES_MODEL)
 
+QWEN_MODEL = "qwen2.5-coder"
+qwen_instance = ChatOllama(model=HERMES_MODEL)
+
 conversation_react_agent = create_react_agent(llama_instance, tools=conversation_tools)
 home_management_react_agent = create_react_agent(llama_instance, tools=home_tools)
 
@@ -375,7 +378,7 @@ def help_with_coding(state: MessagesState, config: RunnableConfig):
     inputs = [
         ("system", "You are a ChatBot that assists with writing or explaining code."),
         ("user", latest_message)]
-    code_resp = code_instance.invoke(inputs, config=get_config_values(config))
+    code_resp = qwen_instance.invoke(inputs, config=get_config_values(config))
     return {'messages': [code_resp]}
 
 
@@ -463,6 +466,7 @@ app = workflow.compile(checkpointer=checkpointer, store=store)
 
 
 def test_asking_stuff():
+    ask_stuff("Can you give me a Python function that prints the numbers 1 through 10?", MessageSource.DISCORD_TEXT, "hello")
     ask_stuff("Hi there!", MessageSource.DISCORD_TEXT, "hello")
     ask_stuff("Apple pie is my favorite, what is your favorite pie?", MessageSource.DISCORD_TEXT, "hello")
     ask_stuff("What other desserts are similar to pie?", MessageSource.DISCORD_TEXT, "hello")
@@ -470,3 +474,6 @@ def test_asking_stuff():
     ask_stuff("I am tired", MessageSource.DISCORD_TEXT, "hello")
     ask_stuff("Thanks", MessageSource.DISCORD_TEXT, "hello")
     ask_stuff("Wow", MessageSource.DISCORD_TEXT, "hello")
+
+
+#test_asking_stuff()
