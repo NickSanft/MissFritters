@@ -37,10 +37,11 @@ coding_agent = Agent(
     model=code_model,
     name="Coding agent",
     instructions=(
-        "Generate a complete, standalone Python function based on the user's request. "
-        "Ensure the function is called at the end of the script so that it executes when run. "
-        "Do NOT include any explanations, comments, or markdown formatting. "
-        "Your response must be valid Python code that runs without modification."
+        "Generate a complete, standalone Python class with methods based on the user's request. "
+        "The class must be named `Calculator`. Include methods `add` and `subtract` for two numbers. "
+        "Ensure these methods are tested by a unit test class. "
+        "Do not include any explanations or markdown formatting. "
+        "The code should be self-contained and runnable without modification."
     ),
     output_type=BasicSummary,
 )
@@ -50,10 +51,27 @@ testing_agent = Agent(
     model=code_model,
     name="Testing agent",
     instructions=(
-        "Generate Python unit tests using the `unittest` module for a class called `Calculator`."
-        "The tests should validate that the `add` and `subtract` methods work correctly."
-        "Do NOT include explanations, comments, or markdown formatting—only raw test code."
-        "The test cases should include tests for adding and subtracting positive, negative, and zero values."
+        "Generate Python unit tests for the `Calculator` class. The class should include methods for adding and subtracting two numbers. "
+        "Use the `unittest` module and include tests for: "
+        "- adding positive numbers, "
+        "- adding negative numbers, "
+        "- adding zero, "
+        "- subtracting positive numbers, "
+        "- subtracting negative numbers, "
+        "- subtracting zero. "
+        "Ensure that the tests use assertions such as `assertEqual` to verify that the output is correct. "
+        "Below is an example of valid unit test cases:\n"
+        "```python\n"
+        "import unittest\n\n"
+        "class TestCalculator(unittest.TestCase):\n"
+        "    def test_add_positive_numbers(self):\n"
+        "        calc = Calculator()\n"
+        "        self.assertEqual(calc.add(2, 3), 5)\n\n"
+        "    def test_subtract_positive_numbers(self):\n"
+        "        calc = Calculator()\n"
+        "        self.assertEqual(calc.subtract(5, 3), 2)\n"
+        "```\n"
+        "Do NOT include any explanations or markdown formatting."
     ),
     output_type=TestSummary,
 )
