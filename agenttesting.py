@@ -121,7 +121,7 @@ def run_code_safely(code: str):
 async def main():
     # Step 1: Generate code
     print("🔄 Generating Python code...")
-    result = await Runner.run(triage_agent, input="Generate a Python function that prints the numbers 1 through 10")
+    result = await Runner.run(triage_agent, input="Create a calculator object in Python with methods to add and subtract 2 numbers.")
     summary = result.final_output_as(BasicSummary)
 
     cleaned_code = clean_code(summary.code)
