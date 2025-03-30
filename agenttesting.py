@@ -50,10 +50,10 @@ testing_agent = Agent(
     model=code_model,
     name="Testing agent",
     instructions=(
-        "Generate Python unit tests using the `unittest` module. "
-        "Ensure the test cases import the correct functions and verify expected behavior. "
-        "The response must be valid Python test code that runs without modification. "
-        "Do NOT include explanations, comments, or markdown formatting—just the raw test code."
+        "Generate Python unit tests using the `unittest` module for a class called `Calculator`."
+        "The tests should validate that the `add` and `subtract` methods work correctly."
+        "Do NOT include explanations, comments, or markdown formatting—only raw test code."
+        "The test cases should include tests for adding and subtracting positive, negative, and zero values."
     ),
     output_type=TestSummary,
 )
@@ -63,12 +63,13 @@ triage_agent = Agent(
     model=model,
     name="Triage agent",
     instructions=(
-        "Determine whether the user's request is for code generation or testing. "
-        "If it's for code, route to the Coding Agent. "
-        "If it's for testing, route to the Testing Agent. "
-        "NEVER attempt to call tools directly. Only return structured JSON output."
+        "You are responsible for routing requests to the correct agent. "
+        "If the user asks for code, pass the request to the Coding agent. "
+        "If the user asks for unit tests, pass the request to the Testing agent."
+        "Do NOT attempt to call tools directly. Only return structured JSON output."
     ),
-    handoffs=[coding_agent, testing_agent]
+    handoffs=[coding_agent, testing_agent],
+    tools=[]  # Ensure there are no tool references
 )
 
 
@@ -86,10 +87,11 @@ def clean_code(code: str) -> str:
     if not any(kw in code for kw in ["def ", "import ", "class ", "=", "print(", "return "]):
         return ""
 
-    # Auto-append a function call if missing
-    match = re.search(r"def (\w+)\(", code)
-    if match and f"{match.group(1)}()" not in code:
-        code += f"\n\n{match.group(1)}()"
+    # Auto-append a function call if missing in non-test code
+    if "def " in code and "unittest" not in code:  # Don't add function calls for test code
+        match = re.search(r"def (\w+)\(", code)
+        if match and f"{match.group(1)}()" not in code:
+            code += f"\n\n{match.group(1)}()"
 
     return code.strip()
 
