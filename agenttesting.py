@@ -24,7 +24,7 @@ class BasicSummary(BaseModel):
     """A short 2-3 sentence summary of the findings."""
 
     code: str
-    """Optional, the code to run. Must be standalone, runnable code."""
+    """The code to run. Must be standalone, runnable Python code."""
 
 
 class TestSummary(BaseModel):
@@ -36,7 +36,12 @@ class TestSummary(BaseModel):
 coding_agent = Agent(
     model=code_model,
     name="Coding agent",
-    instructions="Generate Python code. Do not add explanations or markdown formatting.",
+    instructions=(
+        "Generate a complete, standalone Python function based on the user's request. "
+        "Ensure the function is called at the end of the script so that it executes when run. "
+        "Do NOT include any explanations, comments, or markdown formatting. "
+        "Your response must be valid Python code that runs without modification."
+    ),
     output_type=BasicSummary,
 )
 
@@ -46,8 +51,9 @@ testing_agent = Agent(
     name="Testing agent",
     instructions=(
         "Generate Python unit tests using the `unittest` module. "
-        "Ensure the test cases import the correct functions and verify expected behavior."
-        "Do not include explanations, only the test code."
+        "Ensure the test cases import the correct functions and verify expected behavior. "
+        "The response must be valid Python test code that runs without modification. "
+        "Do NOT include explanations, comments, or markdown formatting—just the raw test code."
     ),
     output_type=TestSummary,
 )
@@ -57,23 +63,18 @@ triage_agent = Agent(
     model=model,
     name="Triage agent",
     instructions=(
-        "You are responsible for routing requests to the correct agent. "
-        "If the user asks for code, pass the request to the coding agent. "
-        "If the user asks for something else, pass it to the conversation agent. "
-        "Do NOT call any tools directly. Only return structured JSON output."
-    ),    handoffs=[coding_agent, testing_agent],
-    tools=[]
+        "Determine whether the user's request is for code generation or testing. "
+        "If it's for code, route to the Coding Agent. "
+        "If it's for testing, route to the Testing Agent. "
+        "NEVER attempt to call tools directly. Only return structured JSON output."
+    ),
+    handoffs=[coding_agent, testing_agent]
 )
 
 
 # Function to clean extracted Python code
 def clean_code(code: str) -> str:
-    """
-    Cleans generated code by:
-    - Removing markdown-style triple backticks
-    - Removing language specifiers like `python`
-    - Extracting only valid Python code
-    """
+    """Cleans generated code and ensures the function is called."""
     if not code:
         return ""
 
@@ -84,6 +85,11 @@ def clean_code(code: str) -> str:
     # Ensure the code is valid Python
     if not any(kw in code for kw in ["def ", "import ", "class ", "=", "print(", "return "]):
         return ""
+
+    # Auto-append a function call if missing
+    match = re.search(r"def (\w+)\(", code)
+    if match and f"{match.group(1)}()" not in code:
+        code += f"\n\n{match.group(1)}()"
 
     return code.strip()
 
@@ -114,34 +120,38 @@ def run_code_safely(code: str):
 
 async def main():
     # Step 1: Generate code
-    result = await Runner.run(triage_agent, input="Generate a Python function that prints 'Hello, world!'")
+    print("🔄 Generating Python code...")
+    result = await Runner.run(triage_agent, input="Generate a Python function that prints the numbers 1 through 10")
     summary = result.final_output_as(BasicSummary)
 
     cleaned_code = clean_code(summary.code)
     if not cleaned_code:
-        print("Error: No valid Python code extracted.")
+        print("❌ Error: No valid Python code extracted.")
         return
 
-    print(f"Cleaned Code:\n{cleaned_code}")
+    print(f"✅ Cleaned Code:\n{cleaned_code}")
 
     # Step 2: Run the cleaned code
+    print("🚀 Running the generated code...")
     execution_output = run_code_safely(cleaned_code)
-    print(f"Execution Output:\n{execution_output}")
+    print(f"🖥️ Execution Output:\n{execution_output}")
 
     # Step 3: Generate unit tests
+    print("🔄 Generating unit tests...")
     test_result = await Runner.run(testing_agent, input=f"Write unit tests for this code:\n{cleaned_code}")
     test_summary = test_result.final_output_as(TestSummary)
 
     cleaned_tests = clean_code(test_summary.test_results)
     if not cleaned_tests:
-        print("Error: No valid test code extracted.")
+        print("❌ Error: No valid test code extracted.")
         return
 
-    print(f"Cleaned Tests:\n{cleaned_tests}")
+    print(f"✅ Cleaned Tests:\n{cleaned_tests}")
 
     # Step 4: Run the unit tests
+    print("🧪 Running the unit tests...")
     test_execution_output = run_code_safely(cleaned_tests)
-    print(f"Test Results:\n{test_execution_output}")
+    print(f"📊 Test Results:\n{test_execution_output}")
 
 
 if __name__ == "__main__":
