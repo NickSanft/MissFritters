@@ -6,6 +6,7 @@ import uuid
 from contextlib import ExitStack
 from datetime import datetime
 from typing import Literal
+from zoneinfo import ZoneInfo
 
 import pytz
 from duckduckgo_search import DDGS
@@ -45,6 +46,7 @@ def get_conversation_tools_description():
     Returns a dictionary of available tools and their descriptions.
     """
     conversation_tool_dict = {
+        "convert_timezone": (convert_timezone, "Convert a datetime string and timezone to Brazil and US timezones"),
         "get_current_time": (get_current_time, "Fetch the current time (US / Central Standard Time)."),
         "search_web": (search_web, "Use only to search the internet if you are unsure about something."),
         "roll_dice": (roll_dice, "Roll different types of dice."),
@@ -159,6 +161,31 @@ def get_current_time_internal():
 
     print(rfc3339_timestamp)
     return rfc3339_timestamp
+
+@tool(parse_docstring=True, return_direct=True)
+def convert_timezone(time_str: str, from_tz: str, fmt: str = "%Y-%m-%d %H:%M") -> str:
+    """
+    Convert a datetime string from one timezone to US Central time.
+
+    Args:
+        time_str (str): The datetime string (e.g., "2025-04-18 14:00").
+        from_tz (str): The timezone name of the input time (e.g., "Europe/London").
+        fmt (str): Format of the input and output datetime strings.
+
+    Returns:
+        str: The converted time in US Central time in the same format.
+    """
+    dt = datetime.strptime(time_str, fmt)
+    dt = dt.replace(tzinfo=ZoneInfo(from_tz))
+
+    central_time = dt.astimezone(ZoneInfo("America/Chicago")).strftime(fmt)
+    eastern_time = dt.astimezone(ZoneInfo("America/New_York")).strftime(fmt)
+    brasilia_time = dt.astimezone(ZoneInfo("America/Sao_Paulo")).strftime(fmt)
+    return f"""For {time_str} in {from_tz}:    
+    In US Central Time: {central_time}
+    In US Eastern Time: {eastern_time}
+    In Brasilia Time: {brasilia_time}
+    """
 
 
 @tool(parse_docstring=True)
@@ -477,3 +504,4 @@ def test_asking_stuff():
 
 
 #test_asking_stuff()
+
