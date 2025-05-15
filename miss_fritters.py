@@ -375,6 +375,31 @@ def supervisor_routing(state: MessagesState, config: RunnableConfig):
     original_response = hermes_instance.invoke(inputs)
     route = original_response.content.lower().replace("\"", "")
     print(f"ROUTE DETERMINED: {route}")
+
+    judge_system_prompt = f"""
+    You are an AI judge who evaluates the quality of a response. 
+    Please return "Yes" or "No" to answer whether or not the AI made right decision. 
+    """
+
+    judge_user_prompt = f"""
+    A supervisor agent was given the following system prompt:
+    
+    {supervisor_prompt}
+    
+    The user asked the following prompt:
+    {latest_message}
+    
+    The supervisor agent then responded with:
+    
+    {route}
+    """
+
+
+    print(f"Judge system prompt: {judge_system_prompt}")
+    judge_inputs = [("system", judge_system_prompt), ("user", judge_user_prompt)]
+    judge_response = hermes_instance.invoke(judge_inputs)
+    print(f"Judge response: {judge_response.content}")
+
     if route not in [CODING_NODE, STORY_NODE, CONVERSATION_NODE, HOME_NODE]:
         print("This bot went a little crazy, defaulting to conversation.")
         route = CONVERSATION_NODE
@@ -382,6 +407,8 @@ def supervisor_routing(state: MessagesState, config: RunnableConfig):
 
 
 def should_continue(state: MessagesState) -> Literal["summarize_conversation", END]:
+    #messages = state["messages"]
+    #print(f"Messages: {messages}")
     """Decide whether to summarize or end the conversation."""
     return SUMMARIZE_CONVERSATION_NODE if len(state["messages"]) > 15 else END
 
