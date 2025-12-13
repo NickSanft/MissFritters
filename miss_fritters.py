@@ -2,11 +2,14 @@
 import json
 import random
 import re
+import urllib
 import uuid
 from contextlib import ExitStack
 from datetime import datetime
 from typing import Literal
 from zoneinfo import ZoneInfo
+import requests
+from bs4 import BeautifulSoup
 
 import pytz
 from duckduckgo_search import DDGS
@@ -48,6 +51,7 @@ def get_conversation_tools_description():
     conversation_tool_dict = {
         "convert_timezone": (convert_timezone, "Convert a datetime string and timezone to Brazil and US timezones"),
         "get_current_time": (get_current_time, "Fetch the current time (US / Central Standard Time)."),
+        "scrape_website": (scrape_web, "If provided a URL by the user, this can be used to scrape a website's HTML."),
         "search_web": (search_web, "Use only to search the internet if you are unsure about something."),
         "roll_dice": (roll_dice, "Roll different types of dice."),
         "deck_draw_cards": (deck_draw_cards, "Draw cards from a deck."),
@@ -187,6 +191,41 @@ def convert_timezone(time_str: str, from_tz: str, fmt: str = "%Y-%m-%d %H:%M") -
     In Brasilia Time: {brasilia_time}
     """
 
+@tool(parse_docstring=True)
+def scrape_web(url: str):
+    """
+    Takes in the string of the URL and returns results all readable text from the website
+
+    Args:
+    url: The URL to pull from the internet.
+
+    Returns:
+    string: The readable text from the website.
+    """
+    try:
+        # 1. Fetch the content
+        response = requests.get(url)
+        response.raise_for_status()
+
+        # 2. Parse the HTML
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # 3. Remove non-visible tags
+        # We explicitly remove script, style, metadata, title, and comments
+        for element in soup(['script', 'style', 'head', 'title', 'meta', '[document]']):
+            element.extract()
+
+        # 4. Extract text
+        # get_text() with separator=' ' prevents words merging (e.g. "hello</div><div>world")
+        text = soup.get_text(separator=' ')
+
+        # 5. Clean up whitespace
+        # This collapses multiple spaces/newlines into a single space and strips edges
+        clean_text = re.sub(r'\s+', ' ', text).strip()
+
+        return clean_text
+    except Exception as e:
+        return f"Error: {e}"
 
 @tool(parse_docstring=True)
 def search_web(text_to_search: str):
